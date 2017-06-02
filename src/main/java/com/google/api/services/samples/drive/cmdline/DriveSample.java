@@ -149,7 +149,7 @@ public class DriveSample {
             System.out.println("Files:");
             for (File file : files) {
 //                System.out.printf("%s (%s)\n", file.getName(), file.getId());
-                System.out.printf("%s (%s) tipo %s\n", file.getTitle(), file.getId(), file.getKind());
+                System.out.printf("Nome: %s ID:(%s) Data Criação: %s Data Modificacao: %s\n", file.getTitle(), file.getId(), file.getCreatedDate(), file.getModifiedDate());
             }
         }
         

@@ -43,6 +43,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.List;
+import java.util.Date;
 
 
 
@@ -142,16 +143,41 @@ public class DriveSample {
              //ver se vai precisar de token e paginar, no drive ofical q tem mts paginas   
              .execute();
         //List<File> files = result.getFiles(); metodo depreciado
-        List<File> files = result.getItems();	
+        
+        List<File> files = result.getItems();
+        System.out.println(files.size()); // so retorna 12, nao retornas os arquivos novos add. 
+        
+        
+ //### PRINTAS PROPRIEDADES PARA TESTE ####################
+        	
         if (files == null || files.size() == 0) {
             System.out.println("No files found.");
         } else {
             System.out.println("Files:");
             for (File file : files) {
 //                System.out.printf("%s (%s)\n", file.getName(), file.getId());
-                System.out.printf("Nome: %s ID:(%s) Data Criação: %s Data Modificacao: %s\n", file.getTitle(), file.getId(), file.getCreatedDate(), file.getModifiedDate());
+                System.out.printf("Nome: %s ID:(%s) Data Criação: %s Data Modificacao: %s MIME Type: %s\n", file.getTitle(), file.getId(), file.getCreatedDate(), file.getModifiedDate(), file.getMimeType());
             }
         }
+ //####################################################
+        
+ // ####### Baixando somentes os novos #####################################################
+     
+//        //Supondo que a Cns trouxe do Banco a Data da Ultima Carga a setada abaixo    
+//        Date data_ultima_carga = "2017-06-01T18:08:00.220Z";
+//        
+//        // ### 1º MIMETYPE = .DAT Se for Buscar Novos Arquivos ou Atualizados após a última carga dada no SGBD.
+//        
+//        if (files == null || files.size() == 0) {
+//            System.out.println("No files found.");
+//        } else {
+//            System.out.println("Files Atualizados:");
+//            for (File file : files) {
+//                if(file.getCreatedDate() > data_ultima_carga)    
+//                    System.out.printf("Nome: %s ID:(%s) Data Criação: %s Data Modificacao: %s MIME Type: %s\n", file.getTitle(), file.getId(), file.getCreatedDate(), file.getModifiedDate(), file.getMimeType());
+//            }
+//        }
+// ####### fim Baixando somentes os novos #####################################################   
         
         
       

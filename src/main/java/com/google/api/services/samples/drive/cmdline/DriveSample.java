@@ -120,30 +120,30 @@ public class DriveSample {
         "Please enter download directory in %s", DriveSample.class);
 
     try {
-      //Teste verficiar conteudo  System.out.println(CAMINHO_UPLOAD);
+      //Teste verificiar conteudo:  System.out.println(CAMINHO_UPLOAD);
       httpTransport = GoogleNetHttpTransport.newTrustedTransport();
       dataStoreFactory = new FileDataStoreFactory(DATA_STORE_DIR);
       // authorization
       Credential credential = authorize();
       // set up the global Drive instance
       drive = new Drive.Builder(httpTransport, JSON_FACTORY, credential).setApplicationName(
-          APPLICATION_NAME).build();
+          APPLICATION_NAME).build();        
 
-      // run commands
-      //####################################################
-// Build a new authorized API client service.
-        //Drive service = getDriveService();
-
-        // Print the names and IDs for up to 10 files.
+      String pageToken = null;
+      do {  
         FileList result = drive.files().list()
-             //.setPageSize(10)
-             //.setFields("nextPageToken, files(id, name)") metodo parece esta depreciado
-             //.setFields("nextPageToken, files(id, title)")
-             //.setKind(".JPEG"); tentar filtras o tipo dos arquivos e os campos retornados. é sempre o msm tipo #drive
-             //ver se vai precisar de token e paginar, no drive ofical q tem mts paginas   
-             .execute();
-        //List<File> files = result.getFiles(); metodo depreciado
+                .setQ("mimeType='application/octet-stream'") // Somente os com tipo/MIME .dat                  
+                //.setSpaces("drive")
+                .setFields("nextPageToken, files(id, name)")
+                .setPageToken(pageToken)
+                .execute();
         
+        
+        
+        pageToken = result.getNextPageToken();
+       } while (pageToken != null);
+      
+        //List<File> files = result.getFiles(); //metodo depreciado        
         List<File> files = result.getItems();
         System.out.println(files.size()); // so retorna 12, nao retornas os arquivos novos add. 
         

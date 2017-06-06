@@ -133,33 +133,34 @@ public class DriveSample {
       do {  
         FileList result = drive.files().list()
                 .setQ("mimeType='application/octet-stream'") // Somente os com tipo/MIME .dat                  
-                //.setSpaces("drive")
-                .setFields("nextPageToken, files(id, name)")
+                //.setSpaces("drive") metodo depreciado                
+                .setFields("nextPageToken, items(id, title, createdDate, modifiedDate, mimeType)")
+                //.setFields("nextPageToken, files(id, name)") //Nao existe mas name, agora é title
                 .setPageToken(pageToken)
-                .execute();
+                .execute();    
         
-        
-        
-        pageToken = result.getNextPageToken();
-       } while (pageToken != null);
-      
-        //List<File> files = result.getFiles(); //metodo depreciado        
+        //List<File> files = result.getFiles(); //Files metodo depreciado        
         List<File> files = result.getItems();
         System.out.println(files.size()); // so retorna 12, nao retornas os arquivos novos add. 
         
         
- //### PRINTAS PROPRIEDADES PARA TESTE ####################
-        	
+    //### PRINTAS PROPRIEDADES PARA TESTE ####################
+    
         if (files == null || files.size() == 0) {
             System.out.println("No files found.");
         } else {
             System.out.println("Files:");
             for (File file : files) {
 //                System.out.printf("%s (%s)\n", file.getName(), file.getId());
-                System.out.printf("Nome: %s ID:(%s) Data Criação: %s Data Modificacao: %s MIME Type: %s\n", file.getTitle(), file.getId(), file.getCreatedDate(), file.getModifiedDate(), file.getMimeType());
+                System.out.printf("Title: %s ID:(%s) Data Criação: %s Data Modificacao: %s MIME Type: %s\n", file.getTitle(), file.getId(), file.getCreatedDate(), file.getModifiedDate(), file.getMimeType());
             }
         }
- //####################################################
+    //####################################################    
+        
+        pageToken = result.getNextPageToken();
+      } while (pageToken != null); 
+      
+ 
         
  // ####### Baixando somentes os novos #####################################################
      

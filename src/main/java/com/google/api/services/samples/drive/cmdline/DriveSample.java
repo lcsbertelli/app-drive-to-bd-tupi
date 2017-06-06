@@ -132,14 +132,11 @@ public class DriveSample {
       String pageToken = null;
       do {  
         FileList result = drive.files().list()
-                .setCorpora("user")
-                //.setQ("mimeType='application/octet-stream'") // Somente os com tipo/MIME .dat                  
-                //.setSpaces("photos")
-                //.setCorpora("domain")
-                //.setCorpus("domain") // Nao da para saber se enxerga os compartilhados. Pq ele so enxergas os add pela propria aplicacao
-                //.setFields("nextPageToken, files(id, title, createdDate, modifiedDate, mimeType)")
-                //.setFields("nextPageToken, files(id, name)") //Nao existe mas Title na v3, agora é name
-                //.setPageToken(pageToken)
+                .setCorpora("user") // Abrange o MyDrive e Shared With Me                
+                .setQ("(mimeType='application/octet-stream') and ('0Bx9yd3l3M5AaZzlZNXJjRE9Wemc' in parents)") // (Somente os com tipo/MIME .dat) and (ID da Pasta Novo monitor banco de dados in Coleção de Pastas do Arquivo(Parents)
+                //.setQ("(mimeType='application/octet-stream') and ('0AMfZkpEPzZbRUk9PVA' in parents)") // TESTE: ID Pasta MyDrive Raiz                 
+                .setFields("nextPageToken, files(id, name, parents, createdTime, modifiedTime, mimeType)") //Nao existe mas Title na v3, agora é name.
+                .setPageToken(pageToken)                
                 .execute();    
         
         List<File> files = result.getFiles();      
@@ -154,8 +151,10 @@ public class DriveSample {
         } else {
             System.out.println("Files:");
             for (File file : files) {
-                System.out.printf("%s (%s)\n", file.getName(), file.getId());
+                System.out.printf("Name: %s ID: (%s) Parents: (%s) DataTime Criação: %s DataTime Modificacao: %s MIME Type: %s\n", 
+                        file.getName(), file.getId(), file.getParents(), file.getCreatedTime(), file.getModifiedTime(), file.getMimeType());
                 //System.out.printf("Title: %s ID:(%s) Data Criação: %s Data Modificacao: %s MIME Type: %s\n", file.getTitle(), file.getId(), file.getCreatedDate(), file.getModifiedDate(), file.getMimeType());
+            
             }
         }
     //####################################################    

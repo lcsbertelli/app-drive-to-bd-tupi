@@ -108,7 +108,7 @@ public class DriveSample {
     // set up authorization code flow
     GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
         httpTransport, JSON_FACTORY, clientSecrets,
-        Collections.singleton(DriveScopes.DRIVE_FILE)).setDataStoreFactory(dataStoreFactory)
+        Collections.singleton(DriveScopes.DRIVE)).setDataStoreFactory(dataStoreFactory)
         .build();
     // authorize
     return new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver()).authorize("user");
@@ -132,12 +132,14 @@ public class DriveSample {
       String pageToken = null;
       do {  
         FileList result = drive.files().list()
-                .setQ("mimeType='application/octet-stream'") // Somente os com tipo/MIME .dat                  
-                //.setSpaces("drive") metodo depreciado
-                //.setCorpus("default") // Nao da para saber se enxerga os compartilhados. Pq ele so enxergas os add pela propria aplicacao
+                .setCorpora("user")
+                //.setQ("mimeType='application/octet-stream'") // Somente os com tipo/MIME .dat                  
+                //.setSpaces("photos")
+                //.setCorpora("domain")
+                //.setCorpus("domain") // Nao da para saber se enxerga os compartilhados. Pq ele so enxergas os add pela propria aplicacao
                 //.setFields("nextPageToken, files(id, title, createdDate, modifiedDate, mimeType)")
-                .setFields("nextPageToken, files(id, name)") //Nao existe mas name, agora é title
-                .setPageToken(pageToken)
+                //.setFields("nextPageToken, files(id, name)") //Nao existe mas Title na v3, agora é name
+                //.setPageToken(pageToken)
                 .execute();    
         
         List<File> files = result.getFiles();      

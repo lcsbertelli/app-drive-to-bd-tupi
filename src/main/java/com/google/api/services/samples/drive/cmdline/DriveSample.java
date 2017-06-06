@@ -133,15 +133,16 @@ public class DriveSample {
       do {  
         FileList result = drive.files().list()
                 .setQ("mimeType='application/octet-stream'") // Somente os com tipo/MIME .dat                  
-                //.setSpaces("drive") metodo depreciado                
-                .setFields("nextPageToken, items(id, title, createdDate, modifiedDate, mimeType)")
-                //.setFields("nextPageToken, files(id, name)") //Nao existe mas name, agora é title
+                //.setSpaces("drive") metodo depreciado
+                //.setCorpus("default") // Nao da para saber se enxerga os compartilhados. Pq ele so enxergas os add pela propria aplicacao
+                //.setFields("nextPageToken, files(id, title, createdDate, modifiedDate, mimeType)")
+                .setFields("nextPageToken, files(id, name)") //Nao existe mas name, agora é title
                 .setPageToken(pageToken)
                 .execute();    
         
-        //List<File> files = result.getFiles(); //Files metodo depreciado        
-        List<File> files = result.getItems();
-        System.out.println(files.size()); // so retorna 12, nao retornas os arquivos novos add. 
+        List<File> files = result.getFiles();      
+        //List<File> files = result.getItems(); //metodo defasado, usado na API v2.
+        System.out.println(files.size()); // so retorna 18, mas tem 25 itens lá. nao retornas os arquivos novos add via browser. 
         
         
     //### PRINTAS PROPRIEDADES PARA TESTE ####################
@@ -151,8 +152,8 @@ public class DriveSample {
         } else {
             System.out.println("Files:");
             for (File file : files) {
-//                System.out.printf("%s (%s)\n", file.getName(), file.getId());
-                System.out.printf("Title: %s ID:(%s) Data Criação: %s Data Modificacao: %s MIME Type: %s\n", file.getTitle(), file.getId(), file.getCreatedDate(), file.getModifiedDate(), file.getMimeType());
+                System.out.printf("%s (%s)\n", file.getName(), file.getId());
+                //System.out.printf("Title: %s ID:(%s) Data Criação: %s Data Modificacao: %s MIME Type: %s\n", file.getTitle(), file.getId(), file.getCreatedDate(), file.getModifiedDate(), file.getMimeType());
             }
         }
     //####################################################    
@@ -207,7 +208,7 @@ public class DriveSample {
     try {
       File file = service.files().get(fileId).execute();
 
-      System.out.println("Title: " + file.getTitle());
+      //System.out.println("Title: " + file.getTitle());
       System.out.println("Description: " + file.getDescription());
       System.out.println("MIME type: " + file.getMimeType());
     } catch (IOException e) {
@@ -223,23 +224,24 @@ public class DriveSample {
    * @return InputStream containing the file's content if successful,
    *         {@code null} otherwise.
    */
-  private static InputStream downloadFile(Drive service, File file) {
-    if (file.getDownloadUrl() != null && file.getDownloadUrl().length() > 0) {
-      try {
-        HttpResponse resp =
-            service.getRequestFactory().buildGetRequest(new GenericUrl(file.getDownloadUrl()))
-                .execute();
-        return resp.getContent();
-      } catch (IOException e) {
-        // An error occurred.
-        e.printStackTrace();
-        return null;
-      }
-    } else {
-      // The file doesn't have any content stored on Drive.
-      return null;
-    }
-  }
+  // METODOS DEFASADOS PARA A API V3. REVER
+//  private static InputStream downloadFile(Drive service, File file) {
+//    if (file.getDownloadUrl() != null && file.getDownloadUrl().length() > 0) {
+//      try {
+//        HttpResponse resp =
+//            service.getRequestFactory().buildGetRequest(new GenericUrl(file.getDownloadUrl()))
+//                .execute();
+//        return resp.getContent();
+//      } catch (IOException e) {
+//        // An error occurred.
+//        e.printStackTrace();
+//        return null;
+//      }
+//    } else {
+//      // The file doesn't have any content stored on Drive.
+//      return null;
+//    }
+//  }
 
   
 //// ############## ACHO Q N  VAI USAR

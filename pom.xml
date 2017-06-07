@@ -131,6 +131,13 @@
       <artifactId>google-oauth-client-jetty</artifactId>
       <version>${project.oauth.version}</version>
     </dependency>
+    
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>42.1.1.jre7</version>
+    </dependency>
+    
   </dependencies>
   <properties>
     <project.http.version>1.19.0</project.http.version>

@@ -16,7 +16,7 @@ import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.*;
 
-
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -141,8 +141,7 @@ if(dt_ult_carga_formata_drive != null){
           printFiles(files);
         
 //### Fazer Download dos Arquivos Novos - os inseridos em Files
-        //### Nao deve precisar,pois eu posso ir pelo nome dos arquivos q eu ja sei. Antes de baixar - Deletar todos os arquivos na pasta
-              
+        //### Nao precisa deletar todos arquivos da basta download_tupi. Eu so abro os arquivos com o name contido na busca dos novos ou alterados.              
         for (File file : files) {
             downloadFile(file);
         }   
@@ -151,11 +150,46 @@ if(dt_ult_carga_formata_drive != null){
         
 //###  Leitura de Arquivos ##############
         for (File file : files) {
-            java.io.File parentDir = new java.io.File(DIR_FOR_DOWNLOADS);            
-            FileInputStream inputStream = new FileInputStream(new java.io.File(parentDir, file.getName()));
-            //InputStream is = new FileInputStream("arquivo.txt");
-            InputStreamReader isr = new InputStreamReader(inputStream);
-            int resp = isr.read();  
+            try{
+                //tem colocar ID para as linhas e ID_TEMPO, ID_TELESCOPIO
+                String tu, valor_vertical, valor_escaler;
+                // split datas do geName                
+                String ano, mes, dia;
+                java.io.File parentDir = new java.io.File(DIR_FOR_DOWNLOADS);            
+                FileInputStream inputStream = new FileInputStream(new java.io.File(parentDir, file.getName()));
+                //InputStream is = new FileInputStream("arquivo.txt");
+                InputStreamReader isr = new InputStreamReader(inputStream);
+                BufferedReader br = new BufferedReader(isr);
+                String linha_completa = br.readLine();
+                //linha completa
+                System.out.printf("resp: %s \n", linha_completa);
+                String[] linha_splitada = linha_completa.split("	"); // tab caracter, não são espaços.
+                //System.out.printf("%s \n", linha_splitada[2]);
+                tu = linha_splitada[0];
+                valor_vertical = linha_splitada[1];
+                valor_vertical = valor_vertical.substring(0,(valor_vertical.length()-1)); // tirando o caracter ponto no final.
+                valor_escaler = linha_splitada[2];
+                valor_escaler = valor_escaler.substring(0,(valor_escaler.length()-1));
+                System.out.printf("tempo universal: %s\n",  tu);
+                System.out.printf("v. vertical: %s\n",  valor_vertical);
+                System.out.printf("v. escaler: %s\n",  valor_escaler);
+                
+                //splitando data do Name
+                //Name: DB_Tupi_2014_12_17.dat
+                String[] name_splitada = file.getName().split("_");
+                ano = name_splitada[2]; //pq começa em 0.
+                mes = name_splitada[3];
+                dia = name_splitada[4];
+                dia = dia.substring(0,(dia.length()-4)); // retirar .dat da String.
+                System.out.printf("ano: %s\n",  ano);
+                System.out.printf("mês: %s\n",  mes);
+                System.out.printf("dia: %s\n",  dia);
+                
+                
+            }catch(IOException e){
+                System.out.println("Erro ao Manipular o Arquivo: " + file.getName());
+                System.out.println("msg: "+e.getMessage());
+            }    
         }
         
       

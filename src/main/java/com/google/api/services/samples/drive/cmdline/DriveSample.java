@@ -144,15 +144,15 @@ if(dt_ult_carga_formata_drive != null){
               
         for (File file : files) {
             downloadFile(file);
-        }
-        
-    
-    
+        }   
     
 //### fim Download
+        
+//###  Leitura de Arquivos ##############
+        
 
   
-        
+//### Fim leitura arquivos ##############        
         pageToken = result.getNextPageToken();
       } while (pageToken != null); 
       

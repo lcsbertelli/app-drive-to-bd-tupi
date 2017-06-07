@@ -155,6 +155,9 @@ if(dt_ult_carga_formata_drive != null){
                 String tu, valor_vertical, valor_escaler;
                 // split datas do geName                
                 String ano, mes, dia;
+                String query2;
+                
+                
                 java.io.File parentDir = new java.io.File(DIR_FOR_DOWNLOADS);            
                 FileInputStream inputStream = new FileInputStream(new java.io.File(parentDir, file.getName()));
                 //InputStream is = new FileInputStream("arquivo.txt");
@@ -185,7 +188,45 @@ if(dt_ult_carga_formata_drive != null){
                 System.out.printf("mês: %s\n",  mes);
                 System.out.printf("dia: %s\n",  dia);
                 
-                
+                //#### Já existe carga desse Dia and Mes and Ano ? Se sim, DELETA todos os registros e insere novamente.
+                //### Pois nao temos como saber se um campo foi excluido. E afirmar com certeza que o arquivo continua na mesma ordem, q nenhum reg foi add.
+                c.conect();
+
+  // !!!!!!!! ########## TEM QUE SER NULL OUTROS CAMPO DO DIM_TEMPO NA QUERY ABAIXO ??????????????????????????????????????????????????????????????????            
+                query = "SELECT id_tempo FROM DIM_TEMPO WHERE num_ano = " + ano + " and num_mes = " + mes + " and num_dia = " + dia + ";";
+                c.query(query);
+                ResultSet resultSet2 = c.query(query); // Posso usar o mesmo resultSet ?
+                c.disconect();// já salvei no resultSet já posso fechar a conexao.
+                try{    
+                    if(resultSet2.next()){  // Se tem registro, é pq esse mes ja foi carregado no BD e foi modificado. Ou deletado e inserido novamente.
+                        c.conect(); 
+                        // ##### 1 - FAzer Delete dos Registros 
+                        // AINDA NAO TEM REGISTROS LA, Q QUERY É EMPTY
+                        // coloquei 1 registro e nao excluiu, ANALISAR.
+                        query2 = "DELETE FROM FAT_SINAIS WHERE id_tempo =" + resultSet2.getString(1) + ";";                                                          
+                        c.query(query);                        
+                        
+                        
+                        //#### 2 - Delete o registro com o id_tempo.
+                        query = "DELETE FROM DIM_TEMPO WHERE id_tempo =" + resultSet2.getString(1) + ";";
+                        c.query(query);
+                        
+                        c.disconect();
+                    }                    
+                    // Aqui é  Igual sempre da Insert, após DELETE ou direto, se for um arquivo novo.
+                     c.conect();
+                     query = "INSERT INTO DIM_TEMPO (id_tempo, dt_data_completa, num_ano, num_mes, num_dia, num_trimestre, num_semestre, num_hora, num_minuto, num_segundo)" 
+                            + "VALUES (nextval('seq_id_tempo'),null," + ano + ", " + mes + ", " + dia + ", CAST(null as integer), CAST(null as integer), CAST(null as integer), CAST(null as integer), CAST(null as integer));"; 
+                     c.query(query);
+                     
+                     // #### TEM QUE FAZER UM LOOP AQUI PULANDO AS LINHAS DO ARQUIVO E DANDO INSER NA FAT.SINAIS COM O ID ATUAL DO TEMPO E DAR INSERT EM TELESCOPIOS TBM, NAO INSERT MAS PEGAR O ID DO TELESCOPIO, COMO ESSA CARGA SO PARA O TUPI POSSO SETAR NA MAO FORÇADO O ID NEH?
+                    
+                    
+                }catch(Exception e){
+                    System.out.println(" "+e.getMessage());
+                }  
+            
+            
             }catch(IOException e){
                 System.out.println("Erro ao Manipular o Arquivo: " + file.getName());
                 System.out.println("msg: "+e.getMessage());

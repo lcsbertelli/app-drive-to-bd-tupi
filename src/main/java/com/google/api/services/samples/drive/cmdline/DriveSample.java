@@ -133,8 +133,10 @@ public class DriveSample {
           APPLICATION_NAME).build();        
 
 //####### AQUI IRIA NO BANCO E PEGA A DATA DE LÁ
-        // 2017-06-02T18:02:24
-      String data_completa = "2017-06-07 01:00:00"; 
+      // 2017-06-02T18:02:24
+      //String data_completa = "2017-06-07 01:00:00";  // DATA PARA TESTES NO my drive
+      //2017-04-28T15:48:15
+      String data_completa = "2017-04-28 16:15:00";  // Data para testes no Novo Monitor(Alvo)
       String[] data_splitada = data_completa.split(" ");
       String data = data_splitada[0];
       String time = data_splitada[1];
@@ -162,9 +164,11 @@ public class DriveSample {
       do {          
         FileList result = drive.files().list()
                 .setCorpora("user") // Abrange o MyDrive e Shared With Me                
-                //.setQ("(mimeType='application/octet-stream') and ('0Bx9yd3l3M5AaZzlZNXJjRE9Wemc' in parents) and (createdTime > '2017-04-03T12:00:00')") // (Somente os com tipo/MIME .dat) and (ID da Pasta Novo monitor banco de dados in Coleção de Pastas do Arquivo(Parents)
-                //.setQ("(mimeType='application/octet-stream') and ('0AMfZkpEPzZbRUk9PVA' in parents) and (createdTime > '2017-06-02T18:02:11.412Z')") // TESTE: ID Pasta MyDrive Raiz                
-                .setQ("(mimeType='application/octet-stream') and ('0AMfZkpEPzZbRUk9PVA' in parents) and "
+                // (Somente os com tipo/MIME .dat) and (ID da Pasta Novo monitor banco de dados in Coleção de Pastas do Arquivo(Parents)
+                // and ((dt_Create > dat_ultima_carga) or (dt_ModifiedTime > dat_ultima_carga))
+                // id do mydrive: 0AMfZkpEPzZbRUk9PVA
+                // id Alvo do monitor de bd: 0Bx9yd3l3M5AaZzlZNXJjRE9Wemc
+                .setQ("(mimeType='application/octet-stream') and ('0Bx9yd3l3M5AaZzlZNXJjRE9Wemc' in parents) and "
                         + "((createdTime > '" + dt_ult_carga_formata_drive + "') or (modifiedTime > '" + dt_ult_carga_formata_drive + "'))") // TESTE: ID Pasta MyDrive Raiz                 
                 
                 .setFields("nextPageToken, files(id, name, parents, createdTime, modifiedTime, mimeType)") //Nao existe mas Title na v3, agora é name.

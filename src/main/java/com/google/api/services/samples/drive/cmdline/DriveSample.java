@@ -177,7 +177,7 @@ public class DriveSample {
         
         List<File> files = result.getFiles();      
         //List<File> files = result.getItems(); //metodo defasado, usado na API v2.
-        System.out.println(files.size()); // so retorna 18, mas tem 25 itens lá. nao retornas os arquivos novos add via browser. 
+        System.out.println(files.size()); 
         
         
     //### PRINTAS PROPRIEDADES PARA TESTE ####################
@@ -188,8 +188,7 @@ public class DriveSample {
             System.out.println("Files:");
             for (File file : files) {
                 System.out.printf("Name: %s ID: (%s) Parents: (%s) DataTime Criação: %s DataTime Modificacao: %s MIME Type: %s\n", 
-                        file.getName(), file.getId(), file.getParents(), file.getCreatedTime(), file.getModifiedTime(), file.getMimeType());
-                //System.out.printf("Title: %s ID:(%s) Data Criação: %s Data Modificacao: %s MIME Type: %s\n", file.getTitle(), file.getId(), file.getCreatedDate(), file.getModifiedDate(), file.getMimeType());
+                        file.getName(), file.getId(), file.getParents(), file.getCreatedTime(), file.getModifiedTime(), file.getMimeType());                
             
             }
         }
@@ -198,33 +197,8 @@ public class DriveSample {
         pageToken = result.getNextPageToken();
       } while (pageToken != null); 
       
- 
-        
- // ####### Baixando somentes os novos #####################################################
-     
-//        //Supondo que a Cns trouxe do Banco a Data da Ultima Carga a setada abaixo    
-//        Date data_ultima_carga = "2017-06-01T18:08:00.220Z";
-//        
-//        // ### 1º MIMETYPE = .DAT Se for Buscar Novos Arquivos ou Atualizados após a última carga dada no SGBD.
-//        
-//        if (files == null || files.size() == 0) {
-//            System.out.println("No files found.");
-//        } else {
-//            System.out.println("Files Atualizados:");
-//            for (File file : files) {
-//                if(file.getCreatedDate() > data_ultima_carga)    
-//                    System.out.printf("Nome: %s ID:(%s) Data Criação: %s Data Modificacao: %s MIME Type: %s\n", file.getTitle(), file.getId(), file.getCreatedDate(), file.getModifiedDate(), file.getMimeType());
-//            }
-//        }
-// ####### fim Baixando somentes os novos #####################################################   
-        
-        
       
-      
-      
-      //####################################################
-      
-      View.header1("Success!");
+      View.header1("Success!"); // do codigo original excluir depois se nao for usar.
       return;
     } catch (IOException e) {
       System.err.println(e.getMessage());

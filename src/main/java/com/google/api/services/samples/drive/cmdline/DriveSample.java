@@ -43,9 +43,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.List;
+import java.util.Arrays;
 import java.util.Date;
 
-
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.text.ParseException;
 
 
 
@@ -129,12 +132,39 @@ public class DriveSample {
       drive = new Drive.Builder(httpTransport, JSON_FACTORY, credential).setApplicationName(
           APPLICATION_NAME).build();        
 
+//####### AQUI IRIA NO BANCO E PEGA A DATA DE LÁ
+      String data_completa = "2017-04-03 12:00:00"; 
+      String[] data_splitada = data_completa.split(" ");
+      String data = data_splitada[0];
+      String time = data_splitada[1];
+      System.out.println("data:  "+data);
+      System.out.println("time:  "+time);
+      String data_formato_drive = data+"T"+time;
+      System.out.println("Dt formato drive:  "+data_formato_drive);
+      
+      //SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");  
+      //SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+      //Date data_ultima_carga = new Date();
+      //String stringDate = "2017-04-03 12:00:00";
+      //String stringDate = "2014-03-31T14:11:29+02:00";
+      //data_ultima_carga = sdf.format(stringDate); // se for Date já Format, se não .parse
+      //data_ultima_carga = sdf.parse(stringDate); // se for Date já Format, se não .parse     
+      //System.out.println("Data formata: "+data_ultima_carga); 
+      //System.out.println("Data formatada: "+sdf.format(data_ultima_carga));
+      
+      
+      
+      
+//####### fim AQUI IRIA NO BANCO E PEGA A DATA DE LÁ   
+
       String pageToken = null;
-      do {  
+      do {          
         FileList result = drive.files().list()
                 .setCorpora("user") // Abrange o MyDrive e Shared With Me                
-                .setQ("(mimeType='application/octet-stream') and ('0Bx9yd3l3M5AaZzlZNXJjRE9Wemc' in parents)") // (Somente os com tipo/MIME .dat) and (ID da Pasta Novo monitor banco de dados in Coleção de Pastas do Arquivo(Parents)
-                //.setQ("(mimeType='application/octet-stream') and ('0AMfZkpEPzZbRUk9PVA' in parents)") // TESTE: ID Pasta MyDrive Raiz                 
+                //.setQ("(mimeType='application/octet-stream') and ('0Bx9yd3l3M5AaZzlZNXJjRE9Wemc' in parents) and (createdTime > '2017-04-03T12:00:00')") // (Somente os com tipo/MIME .dat) and (ID da Pasta Novo monitor banco de dados in Coleção de Pastas do Arquivo(Parents)
+                //.setQ("(mimeType='application/octet-stream') and ('0AMfZkpEPzZbRUk9PVA' in parents) and (createdTime > '2017-06-02T18:02:11.412Z')") // TESTE: ID Pasta MyDrive Raiz                
+                .setQ("(mimeType='application/octet-stream') and ('0AMfZkpEPzZbRUk9PVA' in parents) and (createdTime > '" + data_formato_drive + "')") // TESTE: ID Pasta MyDrive Raiz                 
+                
                 .setFields("nextPageToken, files(id, name, parents, createdTime, modifiedTime, mimeType)") //Nao existe mas Title na v3, agora é name.
                 .setPageToken(pageToken)                
                 .execute();    

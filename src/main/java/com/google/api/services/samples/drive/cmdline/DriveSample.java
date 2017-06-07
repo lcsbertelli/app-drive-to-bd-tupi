@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.sql.ResultSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Arrays;
@@ -117,7 +118,10 @@ public class DriveSample {
     return new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver()).authorize("user");
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) {    
+    
+    String dt_ult_carga_formata_drive = null;  
+      
     Preconditions.checkArgument(
         !DIR_FOR_DOWNLOADS.startsWith("Enter "),
         "Please enter download directory in %s", DriveSample.class);
@@ -132,18 +136,31 @@ public class DriveSample {
       drive = new Drive.Builder(httpTransport, JSON_FACTORY, credential).setApplicationName(
           APPLICATION_NAME).build();        
 
-//####### AQUI IRIA NO BANCO E PEGA A DATA DE LÁ
+//####### CONEXAO COM BANCO ##########################################################3
+      Conexao c = new Conexao("PostgreSql","localhost","5432","tupi","tupi","123456");
+      c.conect();
+      // Data da Ultima Carga Realizada em UTC - Assumindo q sempre sera a de ID 1, atualizando ela ao final dessa carga.
+      String query = "SELECT data_ultima_carga AT TIME ZONE 'UTC' FROM tupi.CONTROLE_CARGA where id=1;";
+      ResultSet resultSet = c.query(query);
+      try{    
+        if (resultSet.next()){  
+            String data_completa_utc = resultSet.getString(1);
+            System.out.println("Dt ult carga bd: "+data_completa_utc);
+            dt_ult_carga_formata_drive = formatToDrive(data_completa_utc);
+            System.out.println("Dt formato drive:  "+dt_ult_carga_formata_drive);
+        
+        }
+      }catch(Exception e){
+            System.out.println(" "+e.getMessage());
+      }
+      
+      
+      
       // 2017-06-02T18:02:24
       //String data_completa = "2017-06-07 01:00:00";  // DATA PARA TESTES NO my drive
       //2017-04-28T15:48:15
-      String data_completa = "2017-04-28 16:15:00";  // Data para testes no Novo Monitor(Alvo)
-      String[] data_splitada = data_completa.split(" ");
-      String data = data_splitada[0];
-      String time = data_splitada[1];
-      System.out.println("data:  "+data);
-      System.out.println("time:  "+time);
-      String dt_ult_carga_formata_drive = data+"T"+time;
-      System.out.println("Dt formato drive:  "+dt_ult_carga_formata_drive);
+      //String data_completa = "2017-04-28 16:15:00";  // Data para testes no Novo Monitor(Alvo)
+      
       
       //SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");  
       //SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
@@ -159,7 +176,7 @@ public class DriveSample {
       
       
 //####### fim AQUI IRIA NO BANCO E PEGA A DATA DE LÁ   
-
+if(dt_ult_carga_formata_drive != null){
       String pageToken = null;
       do {          
         FileList result = drive.files().list()
@@ -200,14 +217,28 @@ public class DriveSample {
       
       View.header1("Success!"); // do codigo original excluir depois se nao for usar.
       return;
+     } // if dt_ult_carga != null 
     } catch (IOException e) {
       System.err.println(e.getMessage());
     } catch (Throwable t) {
       t.printStackTrace();
     }
+  
     System.exit(1);
-  }
+} // main
 
+  // Metodo para adicionar o T na separacao de Data e Time, e o Z no final. Aceita datas no Padrao yyyy-mm-dd hh:mm:ss 
+  // Ou seja, a data de entrada já está em UTC. Se não tem que converter antes.
+  private static String formatToDrive(String data_completa_utc){
+        String[] data_splitada = data_completa_utc.split(" ");
+        String data = data_splitada[0];
+        String time = data_splitada[1];
+        //System.out.println("data:  "+data);
+        //System.out.println("time:  "+time);
+        String dt_formato_drive = data+"T"+time+"Z"; // Esse formato Usado para Buscar no Drive e Insert no postgres      
+        return dt_formato_drive; 
+  } 
+  
   /**
    * Print a file's metadata.
    *

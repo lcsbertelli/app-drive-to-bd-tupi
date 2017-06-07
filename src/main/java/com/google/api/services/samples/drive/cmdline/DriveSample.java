@@ -142,12 +142,14 @@ public class DriveSample {
       // Data da Ultima Carga Realizada em UTC - Assumindo q sempre sera a de ID 1, atualizando ela ao final dessa carga.
       String query = "SELECT data_ultima_carga AT TIME ZONE 'UTC' FROM tupi.CONTROLE_CARGA where id=1;";
       ResultSet resultSet = c.query(query);
+      c.disconect();// já salvei no resultSet já posso fechar a conexao.
       try{    
         if (resultSet.next()){  
             String data_completa_utc = resultSet.getString(1);
             System.out.println("Dt ult carga bd: "+data_completa_utc);
-            dt_ult_carga_formata_drive = formatToDrive(data_completa_utc);
+            dt_ult_carga_formata_drive = formatToDrive(data_completa_utc); // add T e Z
             System.out.println("Dt formato drive:  "+dt_ult_carga_formata_drive);
+            
         
         }
       }catch(Exception e){
@@ -194,22 +196,23 @@ if(dt_ult_carga_formata_drive != null){
         
         List<File> files = result.getFiles();      
         //List<File> files = result.getItems(); //metodo defasado, usado na API v2.
-        System.out.println(files.size()); 
+        System.out.println(files.size());
         
+          printFiles(files);
         
-    //### PRINTAS PROPRIEDADES PARA TESTE ####################
-    
-        if (files == null || files.size() == 0) {
-            System.out.println("No files found.");
-        } else {
-            System.out.println("Files:");
-            for (File file : files) {
-                System.out.printf("Name: %s ID: (%s) Parents: (%s) DataTime Criação: %s DataTime Modificacao: %s MIME Type: %s\n", 
-                        file.getName(), file.getId(), file.getParents(), file.getCreatedTime(), file.getModifiedTime(), file.getMimeType());                
-            
-            }
+//### Fazer Download dos Arquivos Novos - os inseridos em Files
+        //### Nao deve precisar,pois eu posso ir pelo nome dos arquivos q eu ja sei. Antes de baixar - Deletar todos os arquivos na pasta
+              
+        for (File file : files) {
+            downloadFile(file);
         }
-    //####################################################    
+        
+    
+    
+    
+//### fim Download
+
+  
         
         pageToken = result.getNextPageToken();
       } while (pageToken != null); 
@@ -239,73 +242,33 @@ if(dt_ult_carga_formata_drive != null){
         return dt_formato_drive; 
   } 
   
-  /**
-   * Print a file's metadata.
-   *
-   * @param service Drive API service instance.
-   * @param fileId ID of the file to print metadata for.
-   */
-  private static void printFile(Drive service, String fileId) {
+//### PRINTAS PROPRIEDADES PARA TESTE ####################
+  private static void printFiles(List<File> files) {   
+    if (files == null || files.size() == 0) {
+        System.out.println("No files found.");
+    } else {
+        System.out.println("Files:");
+        for (File file : files) {
+            System.out.printf("Name: %s ID: (%s) Parents: (%s) DataTime Criação: %s DataTime Modificacao: %s MIME Type: %s\n", 
+                    file.getName(), file.getId(), file.getParents(), file.getCreatedTime(), file.getModifiedTime(), file.getMimeType());                
 
-    try {
-      File file = service.files().get(fileId).execute();
-
-      //System.out.println("Title: " + file.getTitle());
-      System.out.println("Description: " + file.getDescription());
-      System.out.println("MIME type: " + file.getMimeType());
-    } catch (IOException e) {
-      System.out.println("An error occurred: " + e);
+        }
     }
-  }
+  }  
+//####################################################
 
-  /**
-   * Download a file's content.
-   *
-   * @param service Drive API service instance.
-   * @param file Drive File instance.
-   * @return InputStream containing the file's content if successful,
-   *         {@code null} otherwise.
-   */
-  // METODOS DEFASADOS PARA A API V3. REVER
-//  private static InputStream downloadFile(Drive service, File file) {
-//    if (file.getDownloadUrl() != null && file.getDownloadUrl().length() > 0) {
-//      try {
-//        HttpResponse resp =
-//            service.getRequestFactory().buildGetRequest(new GenericUrl(file.getDownloadUrl()))
-//                .execute();
-//        return resp.getContent();
-//      } catch (IOException e) {
-//        // An error occurred.
-//        e.printStackTrace();
-//        return null;
-//      }
-//    } else {
-//      // The file doesn't have any content stored on Drive.
-//      return null;
-//    }
-//  }
-
-  
-//// ############## ACHO Q N  VAI USAR
-//  /** Downloads a file using either resumable or direct media download. */
-//  private static void downloadFile(boolean useDirectDownload, File uploadedFile)
-//      throws IOException {
-//    // create parent directory (if necessary)
-//    java.io.File parentDir = new java.io.File(DIR_FOR_DOWNLOADS);
-//    if (!parentDir.exists() && !parentDir.mkdirs()) {
-//      throw new IOException("Unable to create parent directory");
-//    }
-//    OutputStream out = new FileOutputStream(new java.io.File(parentDir, uploadedFile.getTitle()));
-//    //OutputStream out = new FileOutputStream(new java.io.File(parentDir, "teste123"));
-//
-//    MediaHttpDownloader downloader =
-//        new MediaHttpDownloader(httpTransport, drive.getRequestFactory().getInitializer());
-//    downloader.setDirectDownloadEnabled(useDirectDownload);
-//    downloader.setProgressListener(new FileDownloadProgressListener());
-//    downloader.download(new GenericUrl(uploadedFile.getDownloadUrl()), out);
-//    
-//  }
-//// ### ACHO Q VOU DELETAR ESSE METODO ACIMA !
-
+//#############################   BAIXAR 1 ARQUIVO    #######################  
+    private static void downloadFile(File file) throws IOException {
+        String fileId = file.getId();
+        // create parent directory (if necessary)
+        java.io.File parentDir = new java.io.File(DIR_FOR_DOWNLOADS);
+        if (!parentDir.exists() && !parentDir.mkdirs()) {
+          throw new IOException("Unable to create parent directory");
+        }
+        OutputStream outputStream = new FileOutputStream(new java.io.File(parentDir, file.getName()));               
+        drive.files().get(fileId)
+                    .executeMediaAndDownloadTo(outputStream);
+            
+    }
 
 }

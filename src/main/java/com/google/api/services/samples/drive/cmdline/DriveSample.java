@@ -17,6 +17,7 @@ import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.*;
 
 
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -149,7 +150,15 @@ if(dt_ult_carga_formata_drive != null){
 //### fim Download
         
 //###  Leitura de Arquivos ##############
+        for (File file : files) {
+            java.io.File parentDir = new java.io.File(DIR_FOR_DOWNLOADS);            
+            FileInputStream inputStream = new FileInputStream(new java.io.File(parentDir, file.getName()));
+            //InputStream is = new FileInputStream("arquivo.txt");
+            InputStreamReader isr = new InputStreamReader(inputStream);
+            int resp = isr.read();  
+        }
         
+      
 
   
 //### Fim leitura arquivos ##############        

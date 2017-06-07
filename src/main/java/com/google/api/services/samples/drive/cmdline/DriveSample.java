@@ -133,14 +133,15 @@ public class DriveSample {
           APPLICATION_NAME).build();        
 
 //####### AQUI IRIA NO BANCO E PEGA A DATA DE LÁ
-      String data_completa = "2017-04-03 12:00:00"; 
+        // 2017-06-02T18:02:24
+      String data_completa = "2017-06-07 01:00:00"; 
       String[] data_splitada = data_completa.split(" ");
       String data = data_splitada[0];
       String time = data_splitada[1];
       System.out.println("data:  "+data);
       System.out.println("time:  "+time);
-      String data_formato_drive = data+"T"+time;
-      System.out.println("Dt formato drive:  "+data_formato_drive);
+      String dt_ult_carga_formata_drive = data+"T"+time;
+      System.out.println("Dt formato drive:  "+dt_ult_carga_formata_drive);
       
       //SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");  
       //SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
@@ -163,7 +164,8 @@ public class DriveSample {
                 .setCorpora("user") // Abrange o MyDrive e Shared With Me                
                 //.setQ("(mimeType='application/octet-stream') and ('0Bx9yd3l3M5AaZzlZNXJjRE9Wemc' in parents) and (createdTime > '2017-04-03T12:00:00')") // (Somente os com tipo/MIME .dat) and (ID da Pasta Novo monitor banco de dados in Coleção de Pastas do Arquivo(Parents)
                 //.setQ("(mimeType='application/octet-stream') and ('0AMfZkpEPzZbRUk9PVA' in parents) and (createdTime > '2017-06-02T18:02:11.412Z')") // TESTE: ID Pasta MyDrive Raiz                
-                .setQ("(mimeType='application/octet-stream') and ('0AMfZkpEPzZbRUk9PVA' in parents) and (createdTime > '" + data_formato_drive + "')") // TESTE: ID Pasta MyDrive Raiz                 
+                .setQ("(mimeType='application/octet-stream') and ('0AMfZkpEPzZbRUk9PVA' in parents) and "
+                        + "((createdTime > '" + dt_ult_carga_formata_drive + "') or (modifiedTime > '" + dt_ult_carga_formata_drive + "'))") // TESTE: ID Pasta MyDrive Raiz                 
                 
                 .setFields("nextPageToken, files(id, name, parents, createdTime, modifiedTime, mimeType)") //Nao existe mas Title na v3, agora é name.
                 .setPageToken(pageToken)                

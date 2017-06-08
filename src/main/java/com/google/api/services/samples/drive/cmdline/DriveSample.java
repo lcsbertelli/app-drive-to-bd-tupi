@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 
@@ -81,7 +82,12 @@ public class DriveSample {
 
   public static void main(String[] args) {    
     
-    String dt_ult_carga_formata_drive = null;  
+    String dt_ult_carga_formata_drive = null;
+    Conexao c; //da classe Generecia Conexao
+    ResultSet resultSet, resultSet2;
+    resultSet = null; 
+    resultSet2 = null;
+    
       
     Preconditions.checkArgument(
         !DIR_FOR_DOWNLOADS.startsWith("Enter "),
@@ -97,12 +103,14 @@ public class DriveSample {
       drive = new Drive.Builder(httpTransport, JSON_FACTORY, credential).setApplicationName(
           APPLICATION_NAME).build();        
 
-//####### CONEXAO COM BANCO ##########################################################3
-      Conexao c = new Conexao("PostgreSql","localhost","5432","tupi","tupi","123456");
+//####### CONEXAO COM BANCO ##########################################################
+    
+  
+      c = new Conexao("PostgreSql","localhost","5432","tupi","tupi","123456");
       c.conect();
       // Data da Ultima Carga Realizada em UTC - Assumindo q sempre sera a de ID 1, atualizando ela ao final dessa carga.
       String query = "SELECT data_ultima_carga AT TIME ZONE 'UTC' FROM tupi.CONTROLE_CARGA where id=1;";
-      ResultSet resultSet = c.query(query);
+      resultSet = c.query(query);      
       c.disconect();// já salvei no resultSet já posso fechar a conexao.
       try{    
         if (resultSet.next()){  
@@ -195,7 +203,7 @@ if(dt_ult_carga_formata_drive != null){
   // !!!!!!!! ########## TEM QUE SER NULL OUTROS CAMPO DO DIM_TEMPO NA QUERY ABAIXO ??????????????????????????????????????????????????????????????????            
                 query = "SELECT id_tempo FROM DIM_TEMPO WHERE num_ano = " + ano + " and num_mes = " + mes + " and num_dia = " + dia + ";";
                 c.query(query);
-                ResultSet resultSet2 = c.query(query); // Posso usar o mesmo resultSet ?
+                resultSet2 = c.query(query); // Posso usar o mesmo resultSet ? Nao sei pq tem q dar close depois de usar o RS                
                 c.disconect();// já salvei no resultSet já posso fechar a conexao.
                 try{    
                     if(resultSet2.next()){  // Se tem registro, é pq esse mes ja foi carregado no BD e foi modificado. Ou deletado e inserido novamente.
@@ -209,16 +217,15 @@ if(dt_ult_carga_formata_drive != null){
                         
                         //#### 2 - Delete o registro com o id_tempo.
                         query = "DELETE FROM DIM_TEMPO WHERE id_tempo =" + resultSet2.getString(1) + ";";
-                        c.query(query);
-                        
+                        c.query(query);                        
                         c.disconect();
                     }                    
                     // Aqui é  Igual sempre da Insert, após DELETE ou direto, se for um arquivo novo.
                      c.conect();
                      query = "INSERT INTO DIM_TEMPO (id_tempo, dt_data_completa, num_ano, num_mes, num_dia, num_trimestre, num_semestre, num_hora, num_minuto, num_segundo)" 
                             + "VALUES (nextval('seq_id_tempo'),null," + ano + ", " + mes + ", " + dia + ", CAST(null as integer), CAST(null as integer), CAST(null as integer), CAST(null as integer), CAST(null as integer));"; 
-                     c.query(query);
-                     
+                     c.query(query);                    
+                     c.disconect();
                      // #### TEM QUE FAZER UM LOOP AQUI PULANDO AS LINHAS DO ARQUIVO E DANDO INSER NA FAT.SINAIS COM O ID ATUAL DO TEMPO E DAR INSERT EM TELESCOPIOS TBM, NAO INSERT MAS PEGAR O ID DO TELESCOPIO, COMO ESSA CARGA SO PARA O TUPI POSSO SETAR NA MAO FORÇADO O ID NEH?
                     
                     
@@ -244,14 +251,36 @@ if(dt_ult_carga_formata_drive != null){
       // UPDATE tupi.controle_carga SET data_ultima_carga = '1500-01-02T01:04:03Z' WHERE id = 1;
       View.header1("Success!"); // do codigo original excluir depois se nao for usar.
       return;
-     } // if dt_ult_carga != null 
-    } catch (IOException e) {
-      System.err.println(e.getMessage());
-    } catch (Throwable t) {
-      t.printStackTrace();
+     } // if dt_ult_carga != null
+
+   
+//###    liberar recursos
+    
+    try {
+                if (resultSet != null) {
+                    resultSet.close();
+                }
+                if (resultSet2 != null) {
+                    resultSet2.close();
+                }
+                if (c.getStatment() != null) {
+                    c.getStatment().close();
+                }
+                if (c != null) {
+                    c.disconect();
+                }
+
+    } catch (SQLException ex) {
+        System.err.println(ex.getMessage());
     }
-  
-    System.exit(1);
+    
+} catch (IOException e) {
+  System.err.println(e.getMessage());
+} catch (Throwable t) {
+  t.printStackTrace();
+}
+
+System.exit(1);
 } // main
 
   // Metodo para adicionar o T na separacao de Data e Time, e o Z no final. Aceita datas no Padrao yyyy-mm-dd hh:mm:ss 

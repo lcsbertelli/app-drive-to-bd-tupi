@@ -27,6 +27,8 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.LinkedList;
+import java.util.HashMap;
+import java.util.Map;
 
 import java.time.*;
 
@@ -181,10 +183,20 @@ if(dt_ult_carga_formata_drive != null){
       System.out.println("qtde arquivos: "+files.size());
       
 //### Printa Metadados dos arquivos        
-        printFiles(files);        
-        
+      //printFiles(files);
+
 //### fim Printa Metadados dos arquivos
         
+// #################### DESCOMENTE PARA ACHAR DUPLICADAS NA CARGA INICIAL e Comente a parte do DOWNLOAD Abaixo ################################    
+// #################### e Comente a parte do DOWNLOAD Abaixo!!  - até resolver como baixar em Gzip   ###############################
+    //  System.out.println(contaArquivosNomeRepetidoDrive(files));
+    //  return;
+
+// #################### FIM SOMENTE PARA CARGA INICIAL ################################    
+
+   
+
+
 //### Fazer Download dos Arquivos Novos - os inseridos em Files
 //## Observe que a ordenação faz com que os mais recentes sobrecrevam suas duplicatas mais antigas.
         for (File file : files) {
@@ -373,8 +385,32 @@ System.exit(1);
         }
         OutputStream outputStream = new FileOutputStream(new java.io.File(parentDir, file.getName()));               
         drive.files().get(fileId)
-                    .executeMediaAndDownloadTo(outputStream);
+                    .executeMediaAndDownloadTo(outputStream);        
             
     }
-
-}
+    
+    private static Map<String, Integer> contaArquivosNomeRepetidoDrive(List<File> files){        
+        
+        if (files == null || files.size() == 0) {
+            System.out.println("No files found.");
+            return null;
+        } else {
+            Map<String, Integer> nomesRepetidos = new HashMap<String, Integer>();
+            for (File file : files) {
+                if (nomesRepetidos.containsKey(file.getName())){    
+                    nomesRepetidos.put (file.getName(), nomesRepetidos.get(file.getName()) + 1);
+                } else {
+                    nomesRepetidos.put (file.getName(), 1);
+                }   
+            }
+            //excluir os q nao repetem
+            for (File file : files) {
+                if (nomesRepetidos.get(file.getName()) == 1){
+                   nomesRepetidos.remove(file.getName());                    
+                }
+            }        
+            return nomesRepetidos;
+        } 	
+    } 
+    
+}//class

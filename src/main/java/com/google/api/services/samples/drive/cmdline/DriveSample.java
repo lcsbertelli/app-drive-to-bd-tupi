@@ -170,6 +170,7 @@ if(dt_ult_carga_formata_drive != null){
                         + "and ((createdTime > '" + dt_ult_carga_formata_drive + "') or (modifiedTime > '" + dt_ult_carga_formata_drive + "'))"                 
                         + "and (name contains 'DB_Tupi_')") // name começa com prefixo , pois para a propriedade name o contains é sempre por prefixo.
                 .setFields("nextPageToken, files(id, name, parents, createdTime, modifiedTime, mimeType)") //Nao existe mas Title na v3, agora é name.
+                .setOrderBy("modifiedTime")// ordena pela dt_modificacao CRESCENTE, de forma que os arquivos MAIS NOVOS FICAM POR ULTIMO na list e sobrescrevem suas duplicatas ao serem baixados.              
                 .setPageToken(pageToken)                
                 .execute();            
         
@@ -180,10 +181,12 @@ if(dt_ult_carga_formata_drive != null){
       System.out.println("qtde arquivos: "+files.size());
       
 //### Printa Metadados dos arquivos        
-        printFiles(files);
+        printFiles(files);        
+        
 //### fim Printa Metadados dos arquivos
         
-//### Fazer Download dos Arquivos Novos - os inseridos em Files        
+//### Fazer Download dos Arquivos Novos - os inseridos em Files
+//## Observe que a ordenação faz com que os mais recentes sobrecrevam suas duplicatas mais antigas.
         for (File file : files) {
             downloadFile(file);
         }

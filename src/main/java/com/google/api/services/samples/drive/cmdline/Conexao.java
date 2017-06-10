@@ -2,7 +2,7 @@ package com.google.api.services.samples.drive.cmdline;
 
 import java.sql.*;
 /**
-*
+*  // adicionei so o metodo para executar statement ddl
 * @author mayron
 * fonte: http://www.devmedia.com.br/classe-generica-para-conexao-com-postgresql-e-mysql/5492
 */
@@ -13,7 +13,7 @@ public class Conexao {
 	private String user;
 	private String senha;
 	private Connection c;
-	private Statement statment;
+	private Statement statement;
 	private String str_conexao;
 	private String driverjdbc;
 
@@ -50,7 +50,7 @@ public class Conexao {
 		try {
 			Class.forName(getDriverjdbc());
 			setC(DriverManager.getConnection(getStr_conexao(), getUser(), getSenha()));
-			setStatment(getC().createStatement());
+			setStatement(getC().createStatement());
 		}catch (Exception e) {
 			System.err.println(e);
 			e.printStackTrace();
@@ -68,12 +68,24 @@ public class Conexao {
 
 	public ResultSet query(String query){
 		try {
-			return getStatment().executeQuery(query);
+			return getStatement().executeQuery(query);
 		}catch (SQLException ex) {
 			ex.printStackTrace();
 			return null;
 		}
-	} 
+	}
+
+	public void runStatementDDL(String sql){
+		
+                try{                    
+                    // execute insert SQL stetement
+                    getStatement().executeUpdate(sql);
+		
+                }catch (SQLException ex) {
+			ex.printStackTrace();			
+		}
+	}        
+        
 
 	// GETs AND SETs
 	public String getLocal() {
@@ -108,12 +120,12 @@ public class Conexao {
 		this.c = c;
 	}
 
-	public Statement getStatment() {
-		return statment;
+	public Statement getStatement() {
+		return statement;
 	}
 
-	public void setStatment(Statement statment) {
-		this.statment = statment;
+	public void setStatement(Statement statement) {
+		this.statement = statement;
 	}
 
 	public String getStr_conexao() {

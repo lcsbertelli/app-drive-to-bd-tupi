@@ -136,19 +136,19 @@ public class DriveSample {
             dt_ult_carga_formata_drive = formatToDrive(data_completa_utc); // add T e Z
             System.out.println("Dt formato drive:  "+dt_ult_carga_formata_drive);
         }
-    }catch(SQLException e){
-        System.out.println(" "+e.getMessage());
-    }finally{
-        if (resultSet != null) {
-            resultSet.close();
+        }catch(SQLException e){
+            System.out.println(" "+e.getMessage());
+        }finally{
+            if (resultSet != null) {
+                resultSet.close();
+            }
+            if (CONEXAO.getStatement() != null) {
+                CONEXAO.getStatement().close();
+            }
+            if (CONEXAO != null) {
+                CONEXAO.disconect();
+            }
         }
-        if (CONEXAO.getStatment() != null) {
-            CONEXAO.getStatment().close();
-        }
-        if (CONEXAO != null) {
-            CONEXAO.disconect();
-        }
-    }
 //</editor-fold>
       
       
@@ -192,9 +192,7 @@ if(dt_ult_carga_formata_drive != null){
     //  System.out.println(contaArquivosNomeRepetidoDrive(files));
     //  return;
 
-// #################### FIM SOMENTE PARA CARGA INICIAL ################################    
-
-   
+// #################### FIM SOMENTE PARA CARGA INICIAL ################################   
 
 
 //### Fazer Download dos Arquivos Novos - os inseridos em Files
@@ -209,7 +207,10 @@ if(dt_ult_carga_formata_drive != null){
         
         for (File file : files) {
             try{
-                //tem colocar ID para as linhas e ID_TEMPO, ID_TELESCOPIO
+                
+                Integer id_tempo = null;
+      //###### por agora só funciona para o TUPI, logo o ID forçado para 1.          
+                Integer id_telescopio = 1; 
                 String tu_str, valor_vertical, valor_escaler;
                 Double tu_double;
                 ZonedDateTime tu; // TU como DateTime e UTC setado.
@@ -258,63 +259,106 @@ if(dt_ult_carga_formata_drive != null){
                 System.out.printf("v. vertical: %s\n",  valor_vertical);
                 System.out.printf("v. escaler: %s\n",  valor_escaler);
                 
-                
-                
+            // Já foi feito a  carga?        
+            try{         
                 //#### Já existe carga desse Dia and Mes and Ano ? Se sim, DELETA todos os registros e insere novamente.
                 //### Pois nao temos como saber se um campo foi excluido. E afirmar com certeza que o arquivo continua na mesma ordem, q nenhum reg foi add.
-                CONEXAO.conect();
+                
 
   // !!!!!!!! ########## TEM QUE SER NULL OUTROS CAMPO DO DIM_TEMPO NA QUERY ABAIXO ??????????????????????????????????????????????????????????????????            
+                CONEXAO.conect();
                 query = "SELECT id_tempo FROM DIM_TEMPO WHERE num_ano = " + ano + " and num_mes = " + mes + " and num_dia = " + dia + ";";
                 CONEXAO.query(query);
                 resultSet2 = CONEXAO.query(query); // Posso usar o mesmo resultSet ? Nao sei pq tem q dar close depois de usar o RS                
-                CONEXAO.disconect();// já salvei no resultSet já posso fechar a conexao.
-                try{    
-                    if(resultSet2.next()){  // Se tem registro, é pq esse mes ja foi carregado no BD e foi modificado. Ou deletado e inserido novamente.
-                        CONEXAO.conect(); 
-                        // ##### 1 - FAzer Delete dos Registros 
-                        // AINDA NAO TEM REGISTROS LA, Q QUERY É EMPTY
-                        // coloquei 1 registro e nao excluiu, ANALISAR.
-                        query2 = "DELETE FROM FAT_SINAIS WHERE id_tempo =" + resultSet2.getString(1) + ";";                                                          
-                        CONEXAO.query(query);                        
-                        
-                        
-                        //#### 2 - Delete o registro com o id_tempo.
-                        query = "DELETE FROM DIM_TEMPO WHERE id_tempo =" + resultSet2.getString(1) + ";";
-                        CONEXAO.query(query);                        
+                CONEXAO.disconect();
+                if(resultSet2.next()){
+                    id_tempo = resultSet2.getInt(1);
+                    System.out.println("id tempo já existe, é: "+id_tempo);            
+                
+
+  // !!!!!!!!!!!! AQUI TEM Q CHAMAR UM PROCEDURE Q DELE OS AGREGADOS TBM ############################################
+                    // ##### 1 - FAzer Delete dos Registros 
+                    // AINDA NAO TEM REGISTROS LA, Q QUERY É EMPTY
+                    // coloquei 1 registro e nao excluiu, ANALISAR.
+                    
+                    //Verifica se tem fatos registrados para esse Id tempo
+                    CONEXAO.conect();
+                    // id_telescopio = 1 é o TUPI
+                    query = "SELECT id_tempo, id_telescopio FROM FAT_SINAIS WHERE id_tempo = "+ id_tempo +" AND id_telescopio = " + id_telescopio + ";";
+                    CONEXAO.query(query);
+                    resultSet = CONEXAO.query(query); // Posso usar o mesmo resultSet ? Nao sei pq tem q dar close depois de usar o RS                
+                    CONEXAO.disconect();
+                    
+                    //Se tem registros, deleta.
+                    if(resultSet.next()){
+                        // DELETAR REGISTROS
+                        CONEXAO.conect();                        
+                        query = "DELETE FROM FAT_SINAIS WHERE id_tempo =" + id_tempo + " AND id_telescopio =" + id_telescopio + ";";                                                          
+                        CONEXAO.runStatementDDL(query);                        
                         CONEXAO.disconect();
-                    }                    
-                    // Aqui é  Igual sempre da Insert, após DELETE ou direto, se for um arquivo novo.
+                    }                            
+                }                                            
+                // Se é uma nova carga. Um arquivo novo.
+                if(id_tempo==null){
+                    //######## INSERE O NOVO DIM_TEMPO ###############    
                      CONEXAO.conect();
                      query = "INSERT INTO DIM_TEMPO (id_tempo, dt_data_completa, num_ano, num_mes, num_dia, num_trimestre, num_semestre, num_hora, num_minuto, num_segundo)" 
-                            + "VALUES (nextval('seq_id_tempo'),null," + ano + ", " + mes + ", " + dia + ", CAST(null as integer), CAST(null as integer), CAST(null as integer), CAST(null as integer), CAST(null as integer));"; 
-                     CONEXAO.query(query);                    
-                     CONEXAO.disconect();
-                     // #### TEM QUE FAZER UM LOOP AQUI PULANDO AS LINHAS DO ARQUIVO E DANDO INSER NA FAT.SINAIS COM O ID ATUAL DO TEMPO E DAR INSERT EM TELESCOPIOS TBM, NAO INSERT MAS PEGAR O ID DO TELESCOPIO, COMO ESSA CARGA SO PARA O TUPI POSSO SETAR NA MAO FORÇADO O ID NEH?
+                            + "VALUES (nextval('seq_id_tempo'),null," + ano + ", " + mes + ", " + dia + ", null, null, null, null, null);"; 
+                     CONEXAO.runStatementDDL(query);                    
+                     CONEXAO.disconect();                
+                }
+                
+                // INSERE FAT_SINAIS ######################## id_telescopio = 1 fixo tupi
+                CONEXAO.conect();
+                query = "INSERT INTO FAT_SINAIS (id_tempo, id_telescopio, valor_vertical, valor_escaler) "
+                        + "VALUES ("+ id_tempo + ", "+ id_telescopio + " ," + valor_vertical + " , "+ valor_escaler + ");";                        
+                CONEXAO.runStatementDDL(query);                    
+                CONEXAO.disconect(); 
+                
+                
+     //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! nova feature !!!!!!!!!!!!!!!!!!!!!!!
+                //##### usa o id_tempo para carga dos fatos. Em fat_sinais.    
+                
+                
+                 // #### TEM QUE FAZER UM LOOP AQUI PULANDO AS LINHAS DO ARQUIVO E DANDO INSER NA FAT.SINAIS COM O ID ATUAL DO TEMPO E DAR INSERT EM TELESCOPIOS TBM, NAO INSERT MAS PEGAR O ID DO TELESCOPIO, COMO ESSA CARGA SO PARA O TUPI POSSO SETAR NA MAO FORÇADO O ID NEH?
                     
-                    
-                }catch(Exception e){
-                    System.out.println(" "+e.getMessage());
-                }  
+            // try verifica se ja teve carga e insere        
+            }catch(SQLException e){
+                System.out.println(" "+e.getMessage());
+            }  
             
-            
-            }catch(IOException e){
-                System.out.println("Erro ao Manipular o Arquivo: " + file.getName());
-                System.out.println("msg: "+e.getMessage());
-            }    
-        }
+        // try de manipular arquivo
+        }catch(IOException e){
+            System.out.println("Erro ao Manipular o Arquivo: " + file.getName());
+            System.out.println("msg: "+e.getMessage());
+        }    
+    } // Fim loop file in files   ##############        
+    
         
+//    // INSERE DATETIME em UTC ATUAL PARA UMA NOVA DATA_ULT_CARGA ##################################################
+//    try{
+//        ZonedDateTime agora = ZonedDateTime.now(ZoneId.of("Z"));  
+//        CONEXAO.conect();        
+//        query = "INSERT INTO tupi.CONTROLE_CARGA (id, data_ultima_carga) VALUES (nextval('seq_id_controle_carga'), '"+ agora +"');";
+//        
+//        CONEXAO.runStatementDDL(query);                        
+//        CONEXAO.disconect();
+//    }catch(Exception e){
+//                System.out.println(" "+e.getMessage());
+//    }finally{
+//                if (resultSet != null) {
+//                    resultSet.close();
+//                }
+//                if (CONEXAO.getStatement() != null) {
+//                    CONEXAO.getStatement().close();
+//                }
+//                if (CONEXAO != null) {
+//                    CONEXAO.disconect();
+//                }
+//    } 
       
-
-  
-//### Fim leitura arquivos ##############        
-       
       
-      // ##### TEM Q DA UPDATE NA data_ultima_carga ###################################################################
-      // UPDATE tupi.controle_carga SET data_ultima_carga = '1500-01-02T01:04:03Z' WHERE id = 1;
-      View.header1("Success!"); // do codigo original excluir depois se nao for usar.
-      return;
-     } // if dt_ult_carga != null
+ } // if dt_ult_carga != null
 
    
 //<editor-fold defaultstate="collapsed" desc="LIBERAR RECURSOS JDBC">
@@ -327,8 +371,8 @@ try {
     if (resultSet2 != null) {
         resultSet2.close();
     }
-    if (CONEXAO.getStatment() != null) {
-        CONEXAO.getStatment().close();
+    if (CONEXAO.getStatement() != null) {
+        CONEXAO.getStatement().close();
     }
     if (CONEXAO != null) {
         CONEXAO.disconect();

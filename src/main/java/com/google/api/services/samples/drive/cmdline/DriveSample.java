@@ -117,43 +117,50 @@ public class DriveSample {
                 APPLICATION_NAME).build();
 //</editor-fold>
     
+
     try{
-      CONEXAO.conect();
-      // Data da Ultima Carga Realizada em UTC.
-      query = "SELECT data_ultima_carga AT TIME ZONE 'UTC' FROM tupi.CONTROLE_CARGA where id IN (SELECT MAX(id) FROM tupi.CONTROLE_CARGA);";
-      resultSet = CONEXAO.query(query);      
-      CONEXAO.disconect();// já salvei no resultSet já posso fechar a conexao.          
-      if (resultSet.next()){  // vai para primeira linha do resultSet 
+        //<editor-fold defaultstate="collapsed" desc="OBTER DATA da ULTIMA CARGA DADOS">
+        
+        
+        CONEXAO.conect();
+        // Data da Ultima Carga Realizada em UTC.
+        query = "SELECT data_ultima_carga AT TIME ZONE 'UTC' FROM tupi.CONTROLE_CARGA where id IN (SELECT MAX(id) FROM tupi.CONTROLE_CARGA);";
+        resultSet = CONEXAO.query(query);
+        CONEXAO.disconect();// já salvei no resultSet já posso fechar a conexao.
+        if (resultSet.next()){  // vai para primeira linha do resultSet
             String data_completa_utc = resultSet.getString(1);
             System.out.println("Dt ult carga bd: "+data_completa_utc);
             dt_ult_carga_formata_drive = formatToDrive(data_completa_utc); // add T e Z
-            System.out.println("Dt formato drive:  "+dt_ult_carga_formata_drive);    
+            System.out.println("Dt formato drive:  "+dt_ult_carga_formata_drive);
         }
     }catch(SQLException e){
-          System.out.println(" "+e.getMessage());
+        System.out.println(" "+e.getMessage());
     }finally{
         if (resultSet != null) {
             resultSet.close();
         }
         if (CONEXAO.getStatment() != null) {
-        CONEXAO.getStatment().close();
+            CONEXAO.getStatment().close();
         }
         if (CONEXAO != null) {
             CONEXAO.disconect();
         }
     }
+//</editor-fold>
       
       
-//####### fim AQUI IRIA NO BANCO E PEGA A DATA DE LÁ   
+// cuidado: Identacao errada 
 if(dt_ult_carga_formata_drive != null){
       String pageToken = null;
-      do {          
+      do {   // faça enquanto tiver arquivos novos.       
         FileList result = drive.files().list()
                 .setCorpora("user") // Abrange o MyDrive e Shared With Me                
+//<editor-fold defaultstate="collapsed" desc="Comentarios do Filtro">
                 // (Somente os com tipo/MIME .dat) and (ID da Pasta Novo monitor banco de dados in Coleção de Pastas do Arquivo(Parents)
                 // and ((dt_Create > dat_ultima_carga) or (dt_ModifiedTime > dat_ultima_carga))
                 // id do mydrive: 0AMfZkpEPzZbRUk9PVA
                 // id Alvo do monitor de bd: 0Bx9yd3l3M5AaZzlZNXJjRE9Wemc
+//</editor-fold>
                 .setQ("(mimeType='application/octet-stream') and ('0Bx9yd3l3M5AaZzlZNXJjRE9Wemc' in parents) and "
                         + "((createdTime > '" + dt_ult_carga_formata_drive + "') or (modifiedTime > '" + dt_ult_carga_formata_drive + "'))") // TESTE: ID Pasta MyDrive Raiz                 
                 
@@ -163,15 +170,16 @@ if(dt_ult_carga_formata_drive != null){
         
         List<File> files = result.getFiles();      
         //List<File> files = result.getItems(); //metodo defasado, usado na API v2.
-        System.out.println(files.size());
+        System.out.println("qtde arquivos por pag:"+files.size());
+
+//### Printa Metadados dos arquivos        
+        printFiles(files);
+//### fim Printa Metadados dos arquivos
         
-          printFiles(files);
-        
-//### Fazer Download dos Arquivos Novos - os inseridos em Files
-        //### Nao precisa deletar todos arquivos da basta download_tupi. Eu so abro os arquivos com o name contido na busca dos novos ou alterados.              
+//### Fazer Download dos Arquivos Novos - os inseridos em Files        
         for (File file : files) {
             downloadFile(file);
-        }   
+        }
     
 //### fim Download
         

@@ -26,6 +26,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
+import java.util.LinkedList;
 
 import java.time.*;
 
@@ -152,26 +153,32 @@ public class DriveSample {
 // cuidado: Identacao errada 
 if(dt_ult_carga_formata_drive != null){
       String pageToken = null;
-      do {   // faça enquanto tiver arquivos novos.       
+      List<File> files = new LinkedList<File>();
+      
+      do {   // Token para paginas -- tenta sem token, pq no files so fica a ultima pagina, o ultimo token desse jeito.       
         FileList result = drive.files().list()
                 .setCorpora("user") // Abrange o MyDrive e Shared With Me                
 //<editor-fold defaultstate="collapsed" desc="Comentarios do Filtro">
                 // (Somente os com tipo/MIME .dat) and (ID da Pasta Novo monitor banco de dados in Coleção de Pastas do Arquivo(Parents)
                 // and ((dt_Create > dat_ultima_carga) or (dt_ModifiedTime > dat_ultima_carga))
+                // and nome começa com prefixo: DB_Tupi_
                 // id do mydrive: 0AMfZkpEPzZbRUk9PVA
                 // id Alvo do monitor de bd: 0Bx9yd3l3M5AaZzlZNXJjRE9Wemc
 //</editor-fold>
-                .setQ("(mimeType='application/octet-stream') and ('0Bx9yd3l3M5AaZzlZNXJjRE9Wemc' in parents) and "
-                        + "((createdTime > '" + dt_ult_carga_formata_drive + "') or (modifiedTime > '" + dt_ult_carga_formata_drive + "'))") // TESTE: ID Pasta MyDrive Raiz                 
-                
+                .setQ("(mimeType='application/octet-stream')"  // tipo .dat
+                        + "and ('0Bx9yd3l3M5AaZzlZNXJjRE9Wemc' in parents)" // id da pasta: Novo monitor banco de dados
+                        + "and ((createdTime > '" + dt_ult_carga_formata_drive + "') or (modifiedTime > '" + dt_ult_carga_formata_drive + "'))"                 
+                        + "and (name contains 'DB_Tupi_')") // name começa com prefixo , pois para a propriedade name o contains é sempre por prefixo.
                 .setFields("nextPageToken, files(id, name, parents, createdTime, modifiedTime, mimeType)") //Nao existe mas Title na v3, agora é name.
                 .setPageToken(pageToken)                
-                .execute();    
+                .execute();            
         
-        List<File> files = result.getFiles();      
-        //List<File> files = result.getItems(); //metodo defasado, usado na API v2.
-        System.out.println("qtde arquivos por pag:"+files.size());
-
+        files.addAll(result.getFiles());        
+        
+        pageToken = result.getNextPageToken();
+      } while (pageToken != null);
+      System.out.println("qtde arquivos: "+files.size());
+      
 //### Printa Metadados dos arquivos        
         printFiles(files);
 //### fim Printa Metadados dos arquivos
@@ -286,10 +293,9 @@ if(dt_ult_carga_formata_drive != null){
 
   
 //### Fim leitura arquivos ##############        
-        pageToken = result.getNextPageToken();
-      } while (pageToken != null); 
+       
       
-      // ##### TEM Q DA UPDATE NA data_ultima_carga
+      // ##### TEM Q DA UPDATE NA data_ultima_carga ###################################################################
       // UPDATE tupi.controle_carga SET data_ultima_carga = '1500-01-02T01:04:03Z' WHERE id = 1;
       View.header1("Success!"); // do codigo original excluir depois se nao for usar.
       return;

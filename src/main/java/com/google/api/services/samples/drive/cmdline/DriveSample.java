@@ -32,96 +32,102 @@ import java.time.*;
 
 public class DriveSample {
 
-  /**
-   * Be sure to specify the name of your application. If the application name is {@code null} or
-   * blank, the application will log a warning. Suggested format is "MyCompany-ProductName/1.0".
-   */
-  private static final String APPLICATION_NAME = "UFF-AppCargaTupi/1.1";  
+//<editor-fold defaultstate="collapsed" desc="DEFINICAO DAS CONSTANTES GLOBAIS DA APP">
+    
+    private static final String APPLICATION_NAME = "UFF-AppCargaTupi/1.1";
+    
+    //<editor-fold defaultstate="collapsed" desc="ALTERAR PARA CADA MAQUINA DIFERENTE">
+    private static final String DIR_USUARIO_HOME = System.getProperty("user.home");
+    
+    private static final String DIR_FOR_DOWNLOADS = "C:\\Users\\lucas\\download_tupi";
+    
+    /** Directory to store user credentials. */
+    private static final java.io.File DATA_STORE_DIR =
+            new java.io.File(System.getProperty("user.home"), ".store/drive_tupi");
+    
+    //Conexao da classe Generecia Conexao
+    private static final Conexao CONEXAO = new Conexao("PostgreSql","localhost","5432","tupi","tupi","123456");
+//</editor-fold>
+ 
+    
+    /**
+     * Global instance of the {@link DataStoreFactory}. The best practice is to make it a single
+     * globally shared instance across your application.
+     */
+    private static FileDataStoreFactory dataStoreFactory;
+    
+    /** Global instance of the HTTP transport. */
+    private static HttpTransport httpTransport;
+    
+    /** Global instance of the JSON factory. */
+    private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
+    
+    /** Global Drive API client. */
+    private static Drive drive;
+//</editor-fold>
 
-  private static final String DIR_USUARIO_HOME = System.getProperty("user.home");
-  
-  private static final String DIR_FOR_DOWNLOADS = "C:\\Users\\lucas\\download_tupi";
-
-  /** Directory to store user credentials. */
-  private static final java.io.File DATA_STORE_DIR =
-      new java.io.File(System.getProperty("user.home"), ".store/drive_tupi");
-
-  /**
-   * Global instance of the {@link DataStoreFactory}. The best practice is to make it a single
-   * globally shared instance across your application.
-   */
-  private static FileDataStoreFactory dataStoreFactory;
-
-  /** Global instance of the HTTP transport. */
-  private static HttpTransport httpTransport;
-
-  /** Global instance of the JSON factory. */
-  private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
-
-  /** Global Drive API client. */
-  private static Drive drive;
-
+  //<editor-fold defaultstate="collapsed" desc="AUTENTICACAO GOOGLE DRIVE">
   /** Authorizes the installed application to access user's protected data. */
   private static Credential authorize() throws Exception {
-    // load client secrets
-    GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY,
-        new InputStreamReader(DriveSample.class.getResourceAsStream("/client_secrets.json")));
-    if (clientSecrets.getDetails().getClientId().startsWith("Enter")
-        || clientSecrets.getDetails().getClientSecret().startsWith("Enter ")) {
-      System.out.println(
-          "Enter Client ID and Secret from https://code.google.com/apis/console/?api=drive "
-          + "into drive-cmdline-sample/src/main/resources/client_secrets.json");
-      System.exit(1);
-    }
-    // set up authorization code flow
-    GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-        httpTransport, JSON_FACTORY, clientSecrets,
-        Collections.singleton(DriveScopes.DRIVE)).setDataStoreFactory(dataStoreFactory)
-        .build();
-    // authorize
-    return new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver()).authorize("user");
+      // load client secrets
+      GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY,
+              new InputStreamReader(DriveSample.class.getResourceAsStream("/client_secrets.json")));
+      if (clientSecrets.getDetails().getClientId().startsWith("Enter")
+              || clientSecrets.getDetails().getClientSecret().startsWith("Enter ")) {
+          System.out.println(
+                  "Enter Client ID and Secret from https://code.google.com/apis/console/?api=drive "
+                          + "into drive-cmdline-sample/src/main/resources/client_secrets.json");
+          System.exit(1);
+      }
+      // set up authorization code flow
+      GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
+              httpTransport, JSON_FACTORY, clientSecrets,
+              Collections.singleton(DriveScopes.DRIVE)).setDataStoreFactory(dataStoreFactory)
+              .build();
+      // authorize
+      return new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver()).authorize("user");
   }
+//</editor-fold>
 
   public static void main(String[] args) {    
     
+     
+    //DATA DA ULTIMA CARGA NO FORMATO DO DRIVE RFC 3339 ISO 8601  
     String dt_ult_carga_formata_drive = null;
-    Conexao c; //da classe Generecia Conexao
+   
     ResultSet resultSet, resultSet2;
     resultSet = null; 
     resultSet2 = null;
-    LocalDate date_name; // somente a data pelo norme do arquivo
+    LocalDate date_name; // Data obtida pelo nome do arquivo
     
       
     Preconditions.checkArgument(
         !DIR_FOR_DOWNLOADS.startsWith("Enter "),
         "Please enter download directory in %s", DriveSample.class);
 
-    try {
-      //Teste verificiar conteudo:  System.out.println(CAMINHO_UPLOAD);
-      httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-      dataStoreFactory = new FileDataStoreFactory(DATA_STORE_DIR);
-      // authorization
-      Credential credential = authorize();
-      // set up the global Drive instance
-      drive = new Drive.Builder(httpTransport, JSON_FACTORY, credential).setApplicationName(
-          APPLICATION_NAME).build();        
-
-//####### CONEXAO COM BANCO ##########################################################
+    try {      
+        //<editor-fold defaultstate="collapsed" desc="SETA VARIAVEIS DO GOOGLE DRIVE e chama AUTENTICACAO">
+        httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+        dataStoreFactory = new FileDataStoreFactory(DATA_STORE_DIR);
+        // authorization
+        Credential credential = authorize();
+        // set up the global Drive instance
+        drive = new Drive.Builder(httpTransport, JSON_FACTORY, credential).setApplicationName(
+                APPLICATION_NAME).build();
+//</editor-fold>
     
-  
-      c = new Conexao("PostgreSql","localhost","5432","tupi","tupi","123456");
-      c.conect();
-      // Data da Ultima Carga Realizada em UTC - Assumindo q sempre sera a de ID 1, atualizando ela ao final dessa carga.
-      String query = "SELECT data_ultima_carga AT TIME ZONE 'UTC' FROM tupi.CONTROLE_CARGA where id=1;";
-      resultSet = c.query(query);      
-      c.disconect();// já salvei no resultSet já posso fechar a conexao.
+     
+      CONEXAO.conect();
+      // Data da Ultima Carga Realizada em UTC.
+      String query = "SELECT data_ultima_carga AT TIME ZONE 'UTC' FROM tupi.CONTROLE_CARGA where id IN (SELECT MAX(id) FROM tupi.CONTROLE_CARGA);";
+      resultSet = CONEXAO.query(query);      
+      CONEXAO.disconect();// já salvei no resultSet já posso fechar a conexao.
       try{    
-        if (resultSet.next()){  
+        if (resultSet.next()){ // aponta para a prox linha do resultSet (por default ele começa antes da primeira linha. Logo ele foi para a primeira linha)  
             String data_completa_utc = resultSet.getString(1);
             System.out.println("Dt ult carga bd: "+data_completa_utc);
             dt_ult_carga_formata_drive = formatToDrive(data_completa_utc); // add T e Z
-            System.out.println("Dt formato drive:  "+dt_ult_carga_formata_drive);
-            
+            System.out.println("Dt formato drive:  "+dt_ult_carga_formata_drive);    
         
         }
       }catch(Exception e){
@@ -216,34 +222,34 @@ if(dt_ult_carga_formata_drive != null){
                 
                 //#### Já existe carga desse Dia and Mes and Ano ? Se sim, DELETA todos os registros e insere novamente.
                 //### Pois nao temos como saber se um campo foi excluido. E afirmar com certeza que o arquivo continua na mesma ordem, q nenhum reg foi add.
-                c.conect();
+                CONEXAO.conect();
 
   // !!!!!!!! ########## TEM QUE SER NULL OUTROS CAMPO DO DIM_TEMPO NA QUERY ABAIXO ??????????????????????????????????????????????????????????????????            
                 query = "SELECT id_tempo FROM DIM_TEMPO WHERE num_ano = " + ano + " and num_mes = " + mes + " and num_dia = " + dia + ";";
-                c.query(query);
-                resultSet2 = c.query(query); // Posso usar o mesmo resultSet ? Nao sei pq tem q dar close depois de usar o RS                
-                c.disconect();// já salvei no resultSet já posso fechar a conexao.
+                CONEXAO.query(query);
+                resultSet2 = CONEXAO.query(query); // Posso usar o mesmo resultSet ? Nao sei pq tem q dar close depois de usar o RS                
+                CONEXAO.disconect();// já salvei no resultSet já posso fechar a conexao.
                 try{    
                     if(resultSet2.next()){  // Se tem registro, é pq esse mes ja foi carregado no BD e foi modificado. Ou deletado e inserido novamente.
-                        c.conect(); 
+                        CONEXAO.conect(); 
                         // ##### 1 - FAzer Delete dos Registros 
                         // AINDA NAO TEM REGISTROS LA, Q QUERY É EMPTY
                         // coloquei 1 registro e nao excluiu, ANALISAR.
                         query2 = "DELETE FROM FAT_SINAIS WHERE id_tempo =" + resultSet2.getString(1) + ";";                                                          
-                        c.query(query);                        
+                        CONEXAO.query(query);                        
                         
                         
                         //#### 2 - Delete o registro com o id_tempo.
                         query = "DELETE FROM DIM_TEMPO WHERE id_tempo =" + resultSet2.getString(1) + ";";
-                        c.query(query);                        
-                        c.disconect();
+                        CONEXAO.query(query);                        
+                        CONEXAO.disconect();
                     }                    
                     // Aqui é  Igual sempre da Insert, após DELETE ou direto, se for um arquivo novo.
-                     c.conect();
+                     CONEXAO.conect();
                      query = "INSERT INTO DIM_TEMPO (id_tempo, dt_data_completa, num_ano, num_mes, num_dia, num_trimestre, num_semestre, num_hora, num_minuto, num_segundo)" 
                             + "VALUES (nextval('seq_id_tempo'),null," + ano + ", " + mes + ", " + dia + ", CAST(null as integer), CAST(null as integer), CAST(null as integer), CAST(null as integer), CAST(null as integer));"; 
-                     c.query(query);                    
-                     c.disconect();
+                     CONEXAO.query(query);                    
+                     CONEXAO.disconect();
                      // #### TEM QUE FAZER UM LOOP AQUI PULANDO AS LINHAS DO ARQUIVO E DANDO INSER NA FAT.SINAIS COM O ID ATUAL DO TEMPO E DAR INSERT EM TELESCOPIOS TBM, NAO INSERT MAS PEGAR O ID DO TELESCOPIO, COMO ESSA CARGA SO PARA O TUPI POSSO SETAR NA MAO FORÇADO O ID NEH?
                     
                     
@@ -272,25 +278,27 @@ if(dt_ult_carga_formata_drive != null){
      } // if dt_ult_carga != null
 
    
+//<editor-fold defaultstate="collapsed" desc="LIBERAR RECURSOS JDBC">
 //###    liberar recursos
-    
-    try {
-                if (resultSet != null) {
-                    resultSet.close();
-                }
-                if (resultSet2 != null) {
-                    resultSet2.close();
-                }
-                if (c.getStatment() != null) {
-                    c.getStatment().close();
-                }
-                if (c != null) {
-                    c.disconect();
-                }
 
-    } catch (SQLException ex) {
-        System.err.println(ex.getMessage());
+try {
+    if (resultSet != null) {
+        resultSet.close();
     }
+    if (resultSet2 != null) {
+        resultSet2.close();
+    }
+    if (CONEXAO.getStatment() != null) {
+        CONEXAO.getStatment().close();
+    }
+    if (CONEXAO != null) {
+        CONEXAO.disconect();
+    }
+    
+} catch (SQLException ex) {
+    System.err.println(ex.getMessage());
+}
+//</editor-fold>
     
 } catch (IOException e) {
   System.err.println(e.getMessage());

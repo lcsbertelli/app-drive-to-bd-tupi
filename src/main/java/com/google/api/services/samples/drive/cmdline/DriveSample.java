@@ -91,14 +91,15 @@ public class DriveSample {
 
   public static void main(String[] args) {    
     
-     
-    //DATA DA ULTIMA CARGA NO FORMATO DO DRIVE RFC 3339 ISO 8601  
-    String dt_ult_carga_formata_drive = null;
-   
+ // ## Var de LOGICA     
+    String dt_ult_carga_formata_drive = null; //DATA DA ULTIMA CARGA NO FORMATO DO DRIVE RFC 3339 ISO 8601
+    LocalDate date_name; // Data obtida pelo nome do arquivo
+    
+ // ## Var JDBC    
+    String query;
     ResultSet resultSet, resultSet2;
     resultSet = null; 
-    resultSet2 = null;
-    LocalDate date_name; // Data obtida pelo nome do arquivo
+    resultSet2 = null;    
     
       
     Preconditions.checkArgument(
@@ -116,23 +117,32 @@ public class DriveSample {
                 APPLICATION_NAME).build();
 //</editor-fold>
     
-     
+    try{
       CONEXAO.conect();
       // Data da Ultima Carga Realizada em UTC.
-      String query = "SELECT data_ultima_carga AT TIME ZONE 'UTC' FROM tupi.CONTROLE_CARGA where id IN (SELECT MAX(id) FROM tupi.CONTROLE_CARGA);";
+      query = "SELECT data_ultima_carga AT TIME ZONE 'UTC' FROM tupi.CONTROLE_CARGA where id IN (SELECT MAX(id) FROM tupi.CONTROLE_CARGA);";
       resultSet = CONEXAO.query(query);      
-      CONEXAO.disconect();// já salvei no resultSet já posso fechar a conexao.
-      try{    
-        if (resultSet.next()){ // aponta para a prox linha do resultSet (por default ele começa antes da primeira linha. Logo ele foi para a primeira linha)  
+      CONEXAO.disconect();// já salvei no resultSet já posso fechar a conexao.          
+      if (resultSet.next()){  // vai para primeira linha do resultSet 
             String data_completa_utc = resultSet.getString(1);
             System.out.println("Dt ult carga bd: "+data_completa_utc);
             dt_ult_carga_formata_drive = formatToDrive(data_completa_utc); // add T e Z
             System.out.println("Dt formato drive:  "+dt_ult_carga_formata_drive);    
-        
         }
-      }catch(Exception e){
-            System.out.println(" "+e.getMessage());
-      }      
+    }catch(SQLException e){
+          System.out.println(" "+e.getMessage());
+    }finally{
+        if (resultSet != null) {
+            resultSet.close();
+        }
+        if (CONEXAO.getStatment() != null) {
+        CONEXAO.getStatment().close();
+        }
+        if (CONEXAO != null) {
+            CONEXAO.disconect();
+        }
+    }
+      
       
 //####### fim AQUI IRIA NO BANCO E PEGA A DATA DE LÁ   
 if(dt_ult_carga_formata_drive != null){

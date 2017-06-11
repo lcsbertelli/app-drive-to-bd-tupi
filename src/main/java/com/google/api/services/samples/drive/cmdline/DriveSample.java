@@ -238,8 +238,8 @@ if(dt_ult_carga_formata_drive != null){
                 
                 //System.out.printf("ano: %s\n",  ano);
                 //System.out.printf("mês: %s\n",  mes);
-                //System.out.printf("dia: %s\n",  dia);
-                
+                //System.out.printf("dia: %s\n",  dia);      
+                         
  //###  LOOP DE PULAR LINHA READLINE INSERIR AQUI          
                 String linha_completa = br.readLine();
                 //linha completa
@@ -267,7 +267,7 @@ if(dt_ult_carga_formata_drive != null){
 
   // !!!!!!!! ########## TEM QUE SER NULL OUTROS CAMPO DO DIM_TEMPO NA QUERY ABAIXO ??????????????????????????????????????????????????????????????????            
                 CONEXAO.conect();
-                query = "SELECT id_tempo FROM DIM_TEMPO WHERE num_ano = " + ano + " and num_mes = " + mes + " and num_dia = " + dia + ";";
+                query = "SELECT id_tempo FROM DIM_TEMPO WHERE dt_data_completa = '" + tu + "' num_ano = " + ano + " and num_mes = " + mes + " and num_dia = " + dia + ";";
                 CONEXAO.query(query);
                 resultSet2 = CONEXAO.query(query); // Posso usar o mesmo resultSet ? Nao sei pq tem q dar close depois de usar o RS                
                 CONEXAO.disconect();
@@ -289,7 +289,7 @@ if(dt_ult_carga_formata_drive != null){
                     resultSet = CONEXAO.query(query); // Posso usar o mesmo resultSet ? Nao sei pq tem q dar close depois de usar o RS                
                     CONEXAO.disconect();
                     
-                    //Se tem registros, deleta.
+                    //Se tem registros na FAT_SINAIS p/ esse id, deleta.
                     if(resultSet.next()){
                         // DELETAR REGISTROS
                         CONEXAO.conect();                        
@@ -304,29 +304,29 @@ if(dt_ult_carga_formata_drive != null){
                      CONEXAO.conect();
                      query = "INSERT INTO DIM_TEMPO (id_tempo, dt_data_completa, num_ano, num_mes, num_dia, num_trimestre, num_semestre, num_hora, num_minuto, num_segundo)" 
                             + "VALUES (nextval('seq_id_tempo'),null," + ano + ", " + mes + ", " + dia + ", null, null, null, null, null);"; 
-                     CONEXAO.runStatementDDL(query);                    
+                     CONEXAO.runStatementDDL(query);
+                     
+                    // ### set esse id_tempo criado na variavel - posso usar currval, ainda estou na msm sessão nao fechei a conexao
+                     query = "select currval('seq_id_tempo');";
+                     resultSet = CONEXAO.query(query);
+                     resultSet.next();
+                     id_tempo = resultSet.getInt(1);
+                     System.out.println("id_tempo currval: "+id_tempo);                     
                      CONEXAO.disconect();                
                 }
                 
-                // INSERE FAT_SINAIS ######################## id_telescopio = 1 fixo tupi
-                CONEXAO.conect();
-                query = "INSERT INTO FAT_SINAIS (id_tempo, id_telescopio, valor_vertical, valor_escaler) "
-                        + "VALUES ("+ id_tempo + ", "+ id_telescopio + " ," + valor_vertical + " , "+ valor_escaler + ");";                        
-                CONEXAO.runStatementDDL(query);                    
-                CONEXAO.disconect(); 
-                
-                
-     //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! nova feature !!!!!!!!!!!!!!!!!!!!!!!
-                //##### usa o id_tempo para carga dos fatos. Em fat_sinais.    
-                
-                
-                 // #### TEM QUE FAZER UM LOOP AQUI PULANDO AS LINHAS DO ARQUIVO E DANDO INSER NA FAT.SINAIS COM O ID ATUAL DO TEMPO E DAR INSERT EM TELESCOPIOS TBM, NAO INSERT MAS PEGAR O ID DO TELESCOPIO, COMO ESSA CARGA SO PARA O TUPI POSSO SETAR NA MAO FORÇADO O ID NEH?
-                    
+                    // INSERE FAT_SINAIS ######################## id_telescopio = 1 fixo tupi
+                    CONEXAO.conect();
+                    query = "INSERT INTO FAT_SINAIS (id_tempo, id_telescopio, valor_vertical, valor_escaler) "
+                            + "VALUES ("+ id_tempo + ", "+ id_telescopio + " ," + valor_vertical + " , "+ valor_escaler + ");";                        
+                    CONEXAO.runStatementDDL(query);                    
+                    CONEXAO.disconect();                         
+                }  
             // try verifica se ja teve carga e insere        
             }catch(SQLException e){
                 System.out.println(" "+e.getMessage());
             }  
-            
+          
         // try de manipular arquivo
         }catch(IOException e){
             System.out.println("Erro ao Manipular o Arquivo: " + file.getName());

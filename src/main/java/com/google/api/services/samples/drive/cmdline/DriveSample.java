@@ -132,9 +132,9 @@ public class DriveSample {
         CONEXAO.disconect();// já salvei no resultSet já posso fechar a conexao.
         if (resultSet.next()){  // vai para primeira linha do resultSet
             String data_completa_utc = resultSet.getString(1);
-            System.out.println("Dt ult carga bd: "+data_completa_utc);
+            //System.out.println("Dt ult carga bd: "+data_completa_utc);
             dt_ult_carga_formata_drive = formatToDrive(data_completa_utc); // add T e Z
-            System.out.println("Dt formato drive:  "+dt_ult_carga_formata_drive);
+            //System.out.println("Dt formato drive:  "+dt_ult_carga_formata_drive);
         }
         }catch(SQLException e){
             System.out.println(" "+e.getMessage());
@@ -236,14 +236,14 @@ if(dt_ult_carga_formata_drive != null){
                 
                 date_name = LocalDate.of(Integer.parseInt(ano), Integer.parseInt(mes), Integer.parseInt(dia));
                 
-                System.out.printf("ano: %s\n",  ano);
-                System.out.printf("mês: %s\n",  mes);
-                System.out.printf("dia: %s\n",  dia);
+                //System.out.printf("ano: %s\n",  ano);
+                //System.out.printf("mês: %s\n",  mes);
+                //System.out.printf("dia: %s\n",  dia);
                 
  //###  LOOP DE PULAR LINHA READLINE INSERIR AQUI          
                 String linha_completa = br.readLine();
                 //linha completa
-                System.out.printf("resp: %s \n", linha_completa);
+                //System.out.printf("resp: %s \n", linha_completa);
                 String[] linha_splitada = linha_completa.split("	"); // tab caracter, não são espaços.
                 //System.out.printf("%s \n", linha_splitada[2]);
                 
@@ -255,9 +255,9 @@ if(dt_ult_carga_formata_drive != null){
                 valor_vertical = valor_vertical.substring(0,(valor_vertical.length()-1)); // tirando o caracter ponto no final.
                 valor_escaler = linha_splitada[2];
                 valor_escaler = valor_escaler.substring(0,(valor_escaler.length()-1));
-                System.out.printf("tempo universal em ZonedDateTime: %s\n",  tu);
-                System.out.printf("v. vertical: %s\n",  valor_vertical);
-                System.out.printf("v. escaler: %s\n",  valor_escaler);
+                //System.out.printf("tempo universal em ZonedDateTime: %s\n",  tu);
+                //System.out.printf("v. vertical: %s\n",  valor_vertical);
+                //System.out.printf("v. escaler: %s\n",  valor_escaler);
                 
             // Já foi feito a  carga?        
             try{         
@@ -273,7 +273,7 @@ if(dt_ult_carga_formata_drive != null){
                 CONEXAO.disconect();
                 if(resultSet2.next()){
                     id_tempo = resultSet2.getInt(1);
-                    System.out.println("id tempo já existe, é: "+id_tempo);            
+                    //System.out.println("id tempo já existe, é: "+id_tempo);            
                 
 
   // !!!!!!!!!!!! AQUI TEM Q CHAMAR UM PROCEDURE Q DELE OS AGREGADOS TBM ############################################

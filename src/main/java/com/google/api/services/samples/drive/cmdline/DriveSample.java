@@ -416,10 +416,11 @@ System.exit(1);
     // FALTA CHAMAR PROCEDURE AGREGADOS DEL
     private static void deletaCargaAnterior(String ano, String mes, String dia, int id_telescopio, LocalDate date_name){
             ResultSet resultSet = null;
+            ResultSet resultSetIdsTempo = null;
             try{
                 int id_tempo;
                 String query;                
-                
+                List<Integer> ids_tempo = new LinkedList<Integer>();
                 LocalDate dia_seguinte = date_name.plusDays(1);
                 
                 delReg00h00m00sProxDia(dia_seguinte, id_telescopio); // deleta o reg do dia SEGUINTE 00:00:00, pois esse arquivo pode duplicalo ao final
@@ -428,10 +429,11 @@ System.exit(1);
                 CONEXAO.conect();
                 query = "SELECT id_tempo FROM DIM_TEMPO WHERE num_ano = " + ano + " and num_mes = " + mes + " and num_dia = " + dia + ""
                         + "and dt_data_completa AT TIME ZONE 'UTC' > '"+ano+"-"+mes+"-"+dia+" 00:00:00';";                                       
-                resultSet = CONEXAO.query(query);              
+                resultSetIdsTempo = CONEXAO.query(query);              
                 CONEXAO.disconect();
-                while(resultSet.next()){ // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate
-                    id_tempo = resultSet.getInt(1);            
+                while(resultSetIdsTempo.next()){ // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate
+                    ids_tempo.add(resultSetIdsTempo.getInt(1));
+                    id_tempo = resultSetIdsTempo.getInt(1);            
                     CONEXAO.conect();
                     // id_telescopio = 1 é o TUPI
                     query = "SELECT id_tempo, id_telescopio FROM FAT_SINAIS WHERE id_tempo = "+ id_tempo +" AND id_telescopio = " + id_telescopio + ";";
@@ -446,7 +448,11 @@ System.exit(1);
                         query = "DELETE FROM FAT_SINAIS WHERE id_tempo =" + id_tempo + " AND id_telescopio =" + id_telescopio + ";";                                                          
                         CONEXAO.runStatementDDL(query);                        
                         CONEXAO.disconect();
-                    }                            
+                    }
+                }    
+                // Deleta os dim_tempo com esses ids.
+                if(!ids_tempo.isEmpty()){
+                    delDimTempoByIDs(ids_tempo);
                 }
             }catch(SQLException e){
                 System.out.println(" "+e.getMessage());
@@ -454,7 +460,10 @@ System.exit(1);
                 try{
                     if (resultSet != null) {
                         resultSet.close();
-                    }            
+                    }
+                    if (resultSetIdsTempo != null) {
+                        resultSetIdsTempo.close();
+                    }
                     if (CONEXAO.getStatement() != null) {
                         CONEXAO.getStatement().close();
                     }
@@ -476,16 +485,19 @@ System.exit(1);
         dia = dia_seguinte.getDayOfMonth();
         
         ResultSet resultSet = null;
+        ResultSet resultSetIdsTempo = null;        
+        List<Integer> ids_tempo = new LinkedList<Integer>();
             try{
                 int id_tempo;
                 String query;
                                 
                 CONEXAO.conect();
                 query = "select id_tempo from dim_tempo WHERE dt_data_completa AT TIME ZONE 'UTC' = '"+ano+"-"+mes+"-"+dia+" 00:00:00';";
-                resultSet = CONEXAO.query(query);              
+                resultSetIdsTempo = CONEXAO.query(query);              
                 CONEXAO.disconect();
-                while(resultSet.next()){ // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate
-                    id_tempo = resultSet.getInt(1);            
+                while(resultSetIdsTempo.next()){ // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate
+                    ids_tempo.add(resultSetIdsTempo.getInt(1));
+                    id_tempo = resultSetIdsTempo.getInt(1);            
                     CONEXAO.conect();
                     // id_telescopio = 1 é o TUPI
                     query = "SELECT id_tempo, id_telescopio FROM FAT_SINAIS WHERE id_tempo = "+ id_tempo +" AND id_telescopio = " + id_telescopio + ";";
@@ -502,13 +514,20 @@ System.exit(1);
                         CONEXAO.disconect();
                     }                            
                 }
+                // Deleta o dim_tempo com esses ids.
+                if(!ids_tempo.isEmpty()){
+                    delDimTempoByIDs(ids_tempo);
+                }
             }catch(SQLException e){
                 System.out.println(" "+e.getMessage());
             }finally{
                 try{
                     if (resultSet != null) {
                         resultSet.close();
-                    }            
+                    }
+                    if (resultSetIdsTempo != null) {
+                        resultSetIdsTempo.close();
+                    }
                     if (CONEXAO.getStatement() != null) {
                         CONEXAO.getStatement().close();
                     }
@@ -521,6 +540,17 @@ System.exit(1);
             }
     }
     
+    private static void delDimTempoByIDs(List<Integer> ids_tempo){                    
+                    
+            String query;           
+            for(Integer id_tempo : ids_tempo){ // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate                                     
+                // DELETAR REGISTROS dim_tempo cargas anteriores com esses IDS
+                CONEXAO.conect();                        
+                query = "DELETE FROM DIM_TEMPO WHERE id_tempo =" + id_tempo + ";";                                                          
+                CONEXAO.runStatementDDL(query);                        
+                CONEXAO.disconect();                
+            }       
+    }
     
     private static String getDataUltimaCarga(){
         String dt_ult_carga_formata_drive = null;

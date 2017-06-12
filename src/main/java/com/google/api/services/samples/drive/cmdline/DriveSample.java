@@ -212,7 +212,7 @@ public class DriveSample {
                
                     // Deleta Carga Anteriores Relacionadas a Esse Dia, se houverem. + agregados + dim_tempo        
                     deletaCargaAnterior(ano, mes, dia, id_telescopio, date_name);
-// #### #########!!!!!!!!!!!!!!!!!!! INSERIR CHAMADA PROCEDURE DELETA AGREGADOS !!!!!!!!!!!!####################
+// #### #########!!!!!!!!!!!!!!!!!! INSERIR CHAMADA PROCEDURE DELETA AGREGADOS !!!!!!!!!!!!####################
 
                     //Insere um novo Dim_tempo para cada TU e depois preenche o fato desse dim grao tu.
                     //chamar procedure calcula_agregados

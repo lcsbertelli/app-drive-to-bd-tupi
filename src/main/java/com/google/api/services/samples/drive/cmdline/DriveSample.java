@@ -32,8 +32,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import java.time.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.time.temporal.IsoFields;
+import java.util.Calendar;
 
 
 public class DriveSample {
@@ -233,10 +233,11 @@ public class DriveSample {
                         hora = tu.getHour();
                         min = tu.getMinute();
                         seg = tu.getSecond();
-                        trimestre = (tu.getMonthValue() / 3) + 1;
-                        semestre = (tu.getMonthValue() / 2) + 1;
-                        
-
+                        trimestre = YearMonth.from(tu).get(IsoFields.QUARTER_OF_YEAR);
+                        if(tu.getMonthValue()<7)
+                           semestre = 1;
+                        else
+                           semestre = 2;     
                         valor_vertical = linha_splitada[1];
                         valor_vertical = valor_vertical.substring(0,(valor_vertical.length()-1)); // tirando o caracter ponto no final.
                         valor_escaler = linha_splitada[2];
@@ -611,6 +612,7 @@ System.exit(1);
             CONEXAO.disconect();
         }
         
-    }
+    }   
+    
     
 }//class

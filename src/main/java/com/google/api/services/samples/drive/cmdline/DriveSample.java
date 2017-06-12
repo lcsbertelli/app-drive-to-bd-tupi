@@ -163,17 +163,17 @@ public class DriveSample {
         
 // #################### DESCOMENTE PARA ACHAR DUPLICADAS NA CARGA INICIAL e Comente a parte do DOWNLOAD Abaixo ################################    
 // #################### e Comente a parte do DOWNLOAD Abaixo!!  - até resolver como baixar em Gzip   ###############################
-    //  System.out.println(contaArquivosNomeRepetidoDrive(files));
-    //  return;
+//      System.out.println(contaArquivosNomeRepetidoDrive(files));
+//      return;
 
 // #################### FIM SOMENTE PARA CARGA INICIAL ################################   
 
 
 //### Fazer Download dos Arquivos Novos - os inseridos em Files
 //## Observe que a ordenação faz com que os mais recentes sobrecrevam suas duplicatas mais antigas.
-            for (File file : files) {
-                downloadFile(file);
-            }
+//            for (File file : files) {
+//                downloadFile(file);
+//            }
     
 //### fim Download
         
@@ -257,26 +257,26 @@ public class DriveSample {
     
         
 //    // INSERE DATETIME em UTC ATUAL PARA UMA NOVA DATA_ULT_CARGA ##################################################
-//    try{
-//        ZonedDateTime agora = ZonedDateTime.now(ZoneId.of("Z"));  
-//        CONEXAO.conect();        
-//        query = "INSERT INTO tupi.CONTROLE_CARGA (id, data_ultima_carga) VALUES (nextval('seq_id_controle_carga'), '"+ agora +"');";
-//        
-//        CONEXAO.runStatementDDL(query);                        
-//        CONEXAO.disconect();
-//    }catch(Exception e){
-//                System.out.println(" "+e.getMessage());
-//    }finally{
-//                if (resultSet != null) {
-//                    resultSet.close();
-//                }
-//                if (CONEXAO.getStatement() != null) {
-//                    CONEXAO.getStatement().close();
-//                }
-//                if (CONEXAO != null) {
-//                    CONEXAO.disconect();
-//                }
-//    } 
+    try{
+        ZonedDateTime agora = ZonedDateTime.now(ZoneId.of("Z"));  
+        CONEXAO.conect();        
+        query = "INSERT INTO tupi.CONTROLE_CARGA (id, data_ultima_carga) VALUES (nextval('seq_id_controle_carga'), '"+ agora +"');";
+        
+        CONEXAO.runStatementDDL(query);                        
+        CONEXAO.disconect();
+    }catch(Exception e){
+                System.out.println(" "+e.getMessage());
+    }finally{
+                if (resultSet != null) {
+                    resultSet.close();
+                }
+                if (CONEXAO.getStatement() != null) {
+                    CONEXAO.getStatement().close();
+                }
+                if (CONEXAO != null) {
+                    CONEXAO.disconect();
+                }
+    } 
    
 //<editor-fold defaultstate="collapsed" desc="LIBERAR RECURSOS JDBC">
 //###    liberar recursos

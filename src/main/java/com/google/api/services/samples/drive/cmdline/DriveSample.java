@@ -242,7 +242,7 @@ public class DriveSample {
                         valor_escaler = linha_splitada[2];
                         valor_escaler = valor_escaler.substring(0,(valor_escaler.length()-1));                        
                         
-                        id_tempo = insereDimTempo(tu, ano, mes, dia, null, null, hora, min, seg);
+                        id_tempo = insereDimTempo(tu, ano, mes, dia, trimestre, semestre, hora, min, seg);
                         insereFatSinais(id_tempo, id_telescopio, valor_vertical, valor_escaler);
 // #### #########!!!!!!!!!!!!!!!!!!! INSERIR CHAMADA PROCEDURE CALCULA AGREGADOS !!!!!!!!!!!!####################
                        

@@ -15,6 +15,7 @@ import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.*;
+import excecoes.TUmaiorQMeiaNoiteException;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -31,6 +32,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import java.time.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 public class DriveSample {
@@ -208,7 +211,7 @@ public class DriveSample {
                     date_name = LocalDate.of(Integer.parseInt(ano), Integer.parseInt(mes), Integer.parseInt(dia));                    
                
                     // Deleta Carga Anteriores Relacionadas a Esse Dia, se houverem. + agregados + dim_tempo        
-                    deletaCargaAnterior(ano, mes, dia, id_telescopio);
+                    deletaCargaAnterior(ano, mes, dia, id_telescopio, date_name);
 // #### #########!!!!!!!!!!!!!!!!!!! INSERIR CHAMADA PROCEDURE DELETA AGREGADOS !!!!!!!!!!!!####################
 
                     //Insere um novo Dim_tempo para cada TU e depois preenche o fato desse dim grao tu.
@@ -221,8 +224,12 @@ public class DriveSample {
                         String[] linha_splitada = linha_completa.split("	"); // tab caracter, não são espaços.                        
 
                         tu_str = linha_splitada[0];
-                        tu_double = Double.valueOf(tu_str).doubleValue();
-                        tu = ConvertTUtoTime.tuToDateTime(tu_double, date_name);
+                        tu_double = Double.valueOf(tu_str).doubleValue();                        
+                        try {
+                            tu = ConvertTUtoTime.tuToDateTime(tu_double, date_name);
+                        } catch (TUmaiorQMeiaNoiteException ex) {
+                            continue; // Excecao para descartar o Registro atualmente sendo lido.
+                        }
                         hora = tu.getHour();
                         min = tu.getMinute();
                         seg = tu.getSecond();
@@ -407,14 +414,20 @@ System.exit(1);
     // + deleto todos os dim_tempo que envolvem essa Data.
     // ou seja, deleto os graos minimos dt_data_completa e seus agregados superiores
     // FALTA CHAMAR PROCEDURE AGREGADOS DEL
-    private static void deletaCargaAnterior(String ano, String mes, String dia, int id_telescopio){
+    private static void deletaCargaAnterior(String ano, String mes, String dia, int id_telescopio, LocalDate date_name){
             ResultSet resultSet = null;
             try{
                 int id_tempo;
-                String query;
-                                
+                String query;                
+                
+                LocalDate dia_seguinte = date_name.plusDays(1);
+                
+                delReg00h00m00sProxDia(dia_seguinte, id_telescopio); // deleta o reg do dia SEGUINTE 00:00:00, pois esse arquivo pode duplicalo ao final
+                
+                //Não deleto os 00:00:00, pois eles estao sempre unitarios e atualizados. E o arquivo deste Dia só insere valores a partir disso, nunca tem valores de 00:00:00 que o duplicariam
                 CONEXAO.conect();
-                query = "SELECT id_tempo FROM DIM_TEMPO WHERE num_ano = " + ano + " and num_mes = " + mes + " and num_dia = " + dia + ";";                
+                query = "SELECT id_tempo FROM DIM_TEMPO WHERE num_ano = " + ano + " and num_mes = " + mes + " and num_dia = " + dia + ""
+                        + "and dt_data_completa AT TIME ZONE 'UTC' > '"+ano+"-"+mes+"-"+dia+" 00:00:00';";                                       
                 resultSet = CONEXAO.query(query);              
                 CONEXAO.disconect();
                 while(resultSet.next()){ // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate
@@ -453,6 +466,61 @@ System.exit(1);
                 }
             }               
     }
+    
+    //Deleta os Registros de 00:00:00 do dia seguinte, pois ele pode ser inserido novamente no final desse arquivo.
+    private static void delReg00h00m00sProxDia(LocalDate dia_seguinte, int id_telescopio){
+        
+        int ano, mes, dia;
+        ano = dia_seguinte.getYear();
+        mes = dia_seguinte.getMonthValue();
+        dia = dia_seguinte.getDayOfMonth();
+        
+        ResultSet resultSet = null;
+            try{
+                int id_tempo;
+                String query;
+                                
+                CONEXAO.conect();
+                query = "select id_tempo from dim_tempo WHERE dt_data_completa AT TIME ZONE 'UTC' = '"+ano+"-"+mes+"-"+dia+" 00:00:00';";
+                resultSet = CONEXAO.query(query);              
+                CONEXAO.disconect();
+                while(resultSet.next()){ // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate
+                    id_tempo = resultSet.getInt(1);            
+                    CONEXAO.conect();
+                    // id_telescopio = 1 é o TUPI
+                    query = "SELECT id_tempo, id_telescopio FROM FAT_SINAIS WHERE id_tempo = "+ id_tempo +" AND id_telescopio = " + id_telescopio + ";";
+                    CONEXAO.query(query);
+                    resultSet = CONEXAO.query(query); // Posso usar o mesmo resultSet ? Nao sei pq tem q dar close depois de usar o RS                
+                    CONEXAO.disconect();
+                    
+                    //Se tem registros na FAT_SINAIS p/ esse id, deleta.
+                    if(resultSet.next()){
+                        // DELETAR REGISTROS
+                        CONEXAO.conect();                        
+                        query = "DELETE FROM FAT_SINAIS WHERE id_tempo =" + id_tempo + " AND id_telescopio =" + id_telescopio + ";";                                                          
+                        CONEXAO.runStatementDDL(query);                        
+                        CONEXAO.disconect();
+                    }                            
+                }
+            }catch(SQLException e){
+                System.out.println(" "+e.getMessage());
+            }finally{
+                try{
+                    if (resultSet != null) {
+                        resultSet.close();
+                    }            
+                    if (CONEXAO.getStatement() != null) {
+                        CONEXAO.getStatement().close();
+                    }
+                }catch(SQLException e){
+                    System.out.println(" "+e.getMessage());
+                }  
+                if (CONEXAO != null) {
+                    CONEXAO.disconect();
+                }
+            }
+    }
+    
     
     private static String getDataUltimaCarga(){
         String dt_ult_carga_formata_drive = null;

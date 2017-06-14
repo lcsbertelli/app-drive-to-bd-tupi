@@ -181,8 +181,8 @@ public class DriveSample {
                 for (File file : files) {
                     try {
                         // Abrir uma Conexao por arquivo e só fechar ao final para acelerar a carga.
-                        CONEXAO.conect();
-                        
+                        CONEXAO.conect();                     
+                                             
                         Integer id_tempo = null;
                         //###### por agora só funciona para o TUPI, logo o ID forçado para 1.          
                         Integer id_telescopio = 1;
@@ -252,7 +252,7 @@ public class DriveSample {
 
                         } //loop prox linha arquivo                    
                         // try do Loop files
-                        CONEXAO.disconect();
+                        CONEXAO.disconect(); // fechando a conexao aberta para leitura de um arquivo do loop
                     } catch (IOException e) {
                         System.out.println("Erro ao Manipular o Arquivo: " + file.getName());
                         System.out.println("msg: " + e.getMessage());
@@ -273,7 +273,7 @@ public class DriveSample {
                     if (resultSet != null) {
                         resultSet.close();
                     }
-                    if (CONEXAO.getStatement() != null) {
+                    if (CONEXAO.getStatement() != null) { // Só aqui eu posso fechar statement e a conexao, pois ja acabou tudo.
                         CONEXAO.getStatement().close();
                     }
                     if (CONEXAO != null) {
@@ -287,7 +287,7 @@ public class DriveSample {
                     if (resultSet != null) {
                         resultSet.close();
                     }
-                    if (CONEXAO.getStatement() != null) {
+                    if (CONEXAO.getStatement() != null) { // aqui tbm: Só aqui eu posso fechar statement e a conexao, pois ja acabou tudo.
                         CONEXAO.getStatement().close();
                     }
                     if (CONEXAO != null) {
@@ -379,6 +379,7 @@ public class DriveSample {
     private static Integer insereDimTempo(ZonedDateTime tu, String ano, String mes, String dia, Integer num_trimestre, Integer num_semestre, Integer num_hora, Integer num_minuto, Integer num_segundo) {
         //######## INSERE O NOVO DIM_TEMPO ###############    
         int id_tempo;
+        CONEXAO.setNovoStatement ();
         ResultSet resultSet;
         //CONEXAO.conect();
         String query;
@@ -412,9 +413,9 @@ public class DriveSample {
             } catch (SQLException e) {
                 System.out.println(" " + e.getMessage());
             }
-            if (CONEXAO != null) {
-                //CONEXAO.disconect();
-            }
+//            if (CONEXAO != null) {
+//                CONEXAO.disconect();
+//            }
         }
     }
 
@@ -423,29 +424,33 @@ public class DriveSample {
     // ou seja, deleto os graos minimos dt_data_completa e seus agregados superiores
     // FALTA CHAMAR PROCEDURE AGREGADOS DEL
     private static void deletaCargaAnterior(String ano, String mes, String dia, int id_telescopio, LocalDate date_name) {
+                
         ResultSet resultSet = null;
         ResultSet resultSetIdsTempo = null;
-        try {
-            int id_tempo;
+        try {            
             String query;
             List<Integer> ids_tempo = new LinkedList<Integer>();
             LocalDate dia_seguinte = date_name.plusDays(1);
 
             delReg00h00m00sProxDia(dia_seguinte, id_telescopio); // deleta o reg do dia SEGUINTE 00:00:00, pois esse arquivo pode duplicalo ao final
-
+            
             //Não deleto os 00:00:00, pois eles estao sempre unitarios e atualizados. E o arquivo deste Dia só insere valores a partir disso, nunca tem valores de 00:00:00 que o duplicariam
             //CONEXAO.conect();
+            CONEXAO.setNovoStatement ();
             query = "SELECT id_tempo FROM DIM_TEMPO WHERE num_ano = " + ano + " and num_mes = " + mes + " and num_dia = " + dia + ""
                     + "and dt_data_completa AT TIME ZONE 'UTC' > '" + ano + "-" + mes + "-" + dia + " 00:00:00';";
             resultSetIdsTempo = CONEXAO.query(query);
             //CONEXAO.disconect();
-            while (resultSetIdsTempo.next()) { // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate
+            while (resultSetIdsTempo.next()) { //Armazena em um list de ids tempos
                 ids_tempo.add(resultSetIdsTempo.getInt(1));
-                id_tempo = resultSetIdsTempo.getInt(1);
+            }
+            for (Integer id_tempo : ids_tempo) { // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate                
                 //CONEXAO.conect();
-                // id_telescopio = 1 é o TUPI
-                query = "SELECT id_tempo, id_telescopio FROM FAT_SINAIS WHERE id_tempo = " + id_tempo + " AND id_telescopio = " + id_telescopio + ";";
-                CONEXAO.query(query);
+                CONEXAO.setNovoStatement ();
+                
+                // VER SE EXISTE FATOS 
+                query = "SELECT id_tempo FROM FAT_SINAIS WHERE id_tempo = " + id_tempo + " AND id_telescopio = " + id_telescopio + ";";
+                
                 resultSet = CONEXAO.query(query); // Posso usar o mesmo resultSet ? Nao sei pq tem q dar close depois de usar o RS                
                 //CONEXAO.disconect();
 
@@ -485,31 +490,35 @@ public class DriveSample {
     }
 
     //Deleta os Registros de 00:00:00 do dia seguinte, pois ele pode ser inserido novamente no final desse arquivo.
-    private static void delReg00h00m00sProxDia(LocalDate dia_seguinte, int id_telescopio) {
-
+    private static void delReg00h00m00sProxDia(LocalDate dia_seguinte, int id_telescopio) {     
+        
         int ano, mes, dia;
         ano = dia_seguinte.getYear();
         mes = dia_seguinte.getMonthValue();
         dia = dia_seguinte.getDayOfMonth();
-
+        
+        
         ResultSet resultSet = null;
         ResultSet resultSetIdsTempo = null;
         List<Integer> ids_tempo = new LinkedList<Integer>();
-        try {
-            int id_tempo;
+        try {            
             String query;
 
             //CONEXAO.conect();
+            CONEXAO.setNovoStatement ();
             query = "select id_tempo from dim_tempo WHERE dt_data_completa AT TIME ZONE 'UTC' = '" + ano + "-" + mes + "-" + dia + " 00:00:00';";
             resultSetIdsTempo = CONEXAO.query(query);
             //CONEXAO.disconect();
-            while (resultSetIdsTempo.next()) { // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate
+            while (resultSetIdsTempo.next()) { //Armazena em um list de ids tempos
                 ids_tempo.add(resultSetIdsTempo.getInt(1));
-                id_tempo = resultSetIdsTempo.getInt(1);
+            }    
+            for (Integer id_tempo : ids_tempo) { // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate
+                
                 //CONEXAO.conect();
-                // id_telescopio = 1 é o TUPI
-                query = "SELECT id_tempo, id_telescopio FROM FAT_SINAIS WHERE id_tempo = " + id_tempo + " AND id_telescopio = " + id_telescopio + ";";
-                CONEXAO.query(query);
+                CONEXAO.setNovoStatement (); //Preciso de 2 conexoes para trabalhar com 2 statements, pois tenho 2 results set.
+                // Vejo se existe fatos para esse ID tempo
+                query = "SELECT id_tempo FROM FAT_SINAIS WHERE id_tempo = " + id_tempo + " AND id_telescopio = " + id_telescopio + ";";
+                
                 resultSet = CONEXAO.query(query); // Posso usar o mesmo resultSet ? Nao sei pq tem q dar close depois de usar o RS                
                 //CONEXAO.disconect();
 
@@ -549,7 +558,8 @@ public class DriveSample {
     }
 
     private static void delDimTempoByIDs(List<Integer> ids_tempo) {
-
+        
+        CONEXAO.setNovoStatement ();
         String query;
         String lista = new String();
         lista = "(";
@@ -557,11 +567,18 @@ public class DriveSample {
             // DELETAR REGISTROS dim_tempo cargas anteriores com esses IDS
             lista = lista + id_tempo + ",";
         }
-        lista = lista + "0)";
+        lista = lista + "0)"; // so para fechar a lista, nao tem id 0, nao da problema. pq da virgula
         //CONEXAO.conect();
         query = "DELETE FROM DIM_TEMPO WHERE id_tempo IN " + lista + ";";
         CONEXAO.runStatementDDL(query);
         //CONEXAO.disconect();
+        try{
+            if (CONEXAO.getStatement() != null) {
+                CONEXAO.getStatement().close();
+            }
+        } catch (SQLException e) {
+                System.out.println(" " + e.getMessage());
+        }   
     }
 
     private static String getDataUltimaCarga() {
@@ -590,7 +607,7 @@ public class DriveSample {
                 if (resultSet != null) {
                     resultSet.close();
                 }
-                if (CONEXAO.getStatement() != null) {
+                if (CONEXAO.getStatement() != null) { // Aqui pode fechar, pois eu abro outra conexao depois
                     CONEXAO.getStatement().close();
                 }
             } catch (SQLException e) {
@@ -604,6 +621,8 @@ public class DriveSample {
 
     //id_telescopio = 1 fixo tupi
     private static void insereFatSinais(int id_tempo, int id_telescopio, String valor_vertical, String valor_escaler) {
+        
+        CONEXAO.setNovoStatement ();
         String query;
 
         //CONEXAO.conect();
@@ -619,9 +638,9 @@ public class DriveSample {
         } catch (SQLException e) {
             System.out.println(" " + e.getMessage());
         }
-        if (CONEXAO != null) {
-            //CONEXAO.disconect();
-        }
+//        if (CONEXAO != null) {
+//            CONEXAO.disconect();
+//        }
 
     }
 

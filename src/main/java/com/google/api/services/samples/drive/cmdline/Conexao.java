@@ -84,9 +84,19 @@ public class Conexao {
                 }catch (SQLException ex) {
 			ex.printStackTrace();			
 		}
-	}        
-        
+	}
 
+        public void setNovoStatement (){
+            try{
+                if (this.statement != null) {
+                        getStatement().close();
+                }
+                this.setStatement(getC().createStatement());
+            }catch (Exception e) {
+                    System.err.println(e);
+                    e.printStackTrace();
+            }
+        }
 	// GETs AND SETs
 	public String getLocal() {
 		return local;

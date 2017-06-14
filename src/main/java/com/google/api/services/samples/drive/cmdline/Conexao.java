@@ -2,7 +2,7 @@ package com.google.api.services.samples.drive.cmdline;
 
 import java.sql.*;
 /**
-*  // adicionei so o metodo para executar statement ddl
+*  // adicionei so o metodo para executar run statement ddl
 * @author mayron
 * fonte: http://www.devmedia.com.br/classe-generica-para-conexao-com-postgresql-e-mysql/5492
 */

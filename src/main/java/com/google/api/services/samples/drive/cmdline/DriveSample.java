@@ -220,8 +220,8 @@ public class DriveSample {
                             //lê a proxima linha
                             String linha_completa = br.readLine();
 
-                            String[] linha_splitada = linha_completa.split("	"); // tab caracter, não são espaços.                        
-                             // split escape do barra t \\t
+                            String[] linha_splitada = linha_completa.split("\\t"); // tab caracter, não são espaços.                        
+                             
                              //
                             tu_str = linha_splitada[0];
                             tu_double = Double.valueOf(tu_str).doubleValue();

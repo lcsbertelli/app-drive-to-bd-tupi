@@ -104,6 +104,7 @@ public class DriveSample {
 
     public static void main(String[] args) {
         Instant inicio = Instant.now(); //tempo de execucao da app
+        System.out.println("Inicio: "+inicio);
         
         // ## Var de LOGICA     
         String dt_ult_carga_formata_drive = null; //DATA DA ULTIMA CARGA NO FORMATO DO DRIVE RFC 3339 ISO 8601
@@ -305,6 +306,7 @@ public class DriveSample {
         }
         
         Instant fim = Instant.now();
+        System.out.println(""+fim);
         Duration duracao = Duration.between(inicio, fim);
         System.out.println("Duracao Total da Carga: "+duracao.toString());
         

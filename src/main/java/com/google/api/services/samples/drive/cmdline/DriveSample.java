@@ -42,8 +42,8 @@ public class DriveSample {
     //<editor-fold defaultstate="collapsed" desc="ALTERAR PARA CADA MAQUINA DIFERENTE">
     private static final String DIR_USUARIO_HOME = System.getProperty("user.home");
 
-    //private static final String DIR_FOR_DOWNLOADS = "C:\\Users\\lucas\\download_tupi";
-    private static final String DIR_FOR_DOWNLOADS = DIR_USUARIO_HOME + "//download_tupi";
+    private static final String DIR_FOR_DOWNLOADS = "C:\\Users\\lucas\\download_tupi";
+    //private static final String DIR_FOR_DOWNLOADS = DIR_USUARIO_HOME + "//download_tupi";
 
     /**
      * Directory to store user credentials.
@@ -172,15 +172,17 @@ public class DriveSample {
 // #################### FIM SOMENTE PARA CARGA INICIAL ################################   
 //### Fazer Download dos Arquivos Novos - os inseridos em Files
 //## Observe que a ordenação faz com que os mais recentes sobrecrevam suas duplicatas mais antigas.
-                for (File file : files) {
-                    downloadFile(file);
-                }
+//                for (File file : files) {
+//                    downloadFile(file);
+//                }
 
 //### fim Download
 //###  Leitura de Arquivos ##############
                 for (File file : files) {
                     try {
-
+                        // Abrir uma Conexao por arquivo e só fechar ao final para acelerar a carga.
+                        CONEXAO.conect();
+                        
                         Integer id_tempo = null;
                         //###### por agora só funciona para o TUPI, logo o ID forçado para 1.          
                         Integer id_telescopio = 1;
@@ -249,7 +251,8 @@ public class DriveSample {
 // #### #########!!!!!!!!!!!!!!!!!!! INSERIR CHAMADA PROCEDURE CALCULA AGREGADOS !!!!!!!!!!!!####################
 
                         } //loop prox linha arquivo                    
-                        // try do Loop files       
+                        // try do Loop files
+                        CONEXAO.disconect();
                     } catch (IOException e) {
                         System.out.println("Erro ao Manipular o Arquivo: " + file.getName());
                         System.out.println("msg: " + e.getMessage());
@@ -377,7 +380,7 @@ public class DriveSample {
         //######## INSERE O NOVO DIM_TEMPO ###############    
         int id_tempo;
         ResultSet resultSet;
-        CONEXAO.conect();
+        //CONEXAO.conect();
         String query;
         query = "INSERT INTO DIM_TEMPO (id_tempo, dt_data_completa, num_ano, num_mes, num_dia, num_trimestre, num_semestre, num_hora, num_minuto, num_segundo)"
                 + "VALUES (nextval('seq_id_tempo'),'" + tu + "'," + ano + ", " + mes + ", " + dia + ", " + num_trimestre + ", " + num_semestre + ", " + num_hora + ", " + num_minuto + "," + num_segundo + ");";
@@ -390,7 +393,7 @@ public class DriveSample {
             if (resultSet.next()) {
                 id_tempo = resultSet.getInt(1);
                 //System.out.println("id_tempo currval: "+id_tempo);                     
-                CONEXAO.disconect();
+                //CONEXAO.disconect();
                 return id_tempo;
             } else {
                 return null;
@@ -410,7 +413,7 @@ public class DriveSample {
                 System.out.println(" " + e.getMessage());
             }
             if (CONEXAO != null) {
-                CONEXAO.disconect();
+                //CONEXAO.disconect();
             }
         }
     }
@@ -431,28 +434,28 @@ public class DriveSample {
             delReg00h00m00sProxDia(dia_seguinte, id_telescopio); // deleta o reg do dia SEGUINTE 00:00:00, pois esse arquivo pode duplicalo ao final
 
             //Não deleto os 00:00:00, pois eles estao sempre unitarios e atualizados. E o arquivo deste Dia só insere valores a partir disso, nunca tem valores de 00:00:00 que o duplicariam
-            CONEXAO.conect();
+            //CONEXAO.conect();
             query = "SELECT id_tempo FROM DIM_TEMPO WHERE num_ano = " + ano + " and num_mes = " + mes + " and num_dia = " + dia + ""
                     + "and dt_data_completa AT TIME ZONE 'UTC' > '" + ano + "-" + mes + "-" + dia + " 00:00:00';";
             resultSetIdsTempo = CONEXAO.query(query);
-            CONEXAO.disconect();
+            //CONEXAO.disconect();
             while (resultSetIdsTempo.next()) { // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate
                 ids_tempo.add(resultSetIdsTempo.getInt(1));
                 id_tempo = resultSetIdsTempo.getInt(1);
-                CONEXAO.conect();
+                //CONEXAO.conect();
                 // id_telescopio = 1 é o TUPI
                 query = "SELECT id_tempo, id_telescopio FROM FAT_SINAIS WHERE id_tempo = " + id_tempo + " AND id_telescopio = " + id_telescopio + ";";
                 CONEXAO.query(query);
                 resultSet = CONEXAO.query(query); // Posso usar o mesmo resultSet ? Nao sei pq tem q dar close depois de usar o RS                
-                CONEXAO.disconect();
+                //CONEXAO.disconect();
 
                 //Se tem registros na FAT_SINAIS p/ esse id, deleta.
                 if (resultSet.next()) {
                     // DELETAR REGISTROS
-                    CONEXAO.conect();
+                    //CONEXAO.conect();
                     query = "DELETE FROM FAT_SINAIS WHERE id_tempo =" + id_tempo + " AND id_telescopio =" + id_telescopio + ";";
                     CONEXAO.runStatementDDL(query);
-                    CONEXAO.disconect();
+                    //CONEXAO.disconect();
                 }
             }
             // Deleta os dim_tempo com esses ids.
@@ -475,9 +478,9 @@ public class DriveSample {
             } catch (SQLException e) {
                 System.out.println(" " + e.getMessage());
             }
-            if (CONEXAO != null) {
-                CONEXAO.disconect();
-            }
+//            if (CONEXAO != null) {
+//                CONEXAO.disconect();
+//            }
         }
     }
 
@@ -496,27 +499,27 @@ public class DriveSample {
             int id_tempo;
             String query;
 
-            CONEXAO.conect();
+            //CONEXAO.conect();
             query = "select id_tempo from dim_tempo WHERE dt_data_completa AT TIME ZONE 'UTC' = '" + ano + "-" + mes + "-" + dia + " 00:00:00';";
             resultSetIdsTempo = CONEXAO.query(query);
-            CONEXAO.disconect();
+            //CONEXAO.disconect();
             while (resultSetIdsTempo.next()) { // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate
                 ids_tempo.add(resultSetIdsTempo.getInt(1));
                 id_tempo = resultSetIdsTempo.getInt(1);
-                CONEXAO.conect();
+                //CONEXAO.conect();
                 // id_telescopio = 1 é o TUPI
                 query = "SELECT id_tempo, id_telescopio FROM FAT_SINAIS WHERE id_tempo = " + id_tempo + " AND id_telescopio = " + id_telescopio + ";";
                 CONEXAO.query(query);
                 resultSet = CONEXAO.query(query); // Posso usar o mesmo resultSet ? Nao sei pq tem q dar close depois de usar o RS                
-                CONEXAO.disconect();
+                //CONEXAO.disconect();
 
                 //Se tem registros na FAT_SINAIS p/ esse id, deleta.
                 if (resultSet.next()) {
                     // DELETAR REGISTROS
-                    CONEXAO.conect();
+                    //CONEXAO.conect();
                     query = "DELETE FROM FAT_SINAIS WHERE id_tempo =" + id_tempo + " AND id_telescopio =" + id_telescopio + ";";
                     CONEXAO.runStatementDDL(query);
-                    CONEXAO.disconect();
+                    //CONEXAO.disconect();
                 }
             }
             // Deleta o dim_tempo com esses ids.
@@ -539,9 +542,9 @@ public class DriveSample {
             } catch (SQLException e) {
                 System.out.println(" " + e.getMessage());
             }
-            if (CONEXAO != null) {
-                CONEXAO.disconect();
-            }
+//            if (CONEXAO != null) {
+//                CONEXAO.disconect();
+//            }
         }
     }
 
@@ -555,10 +558,10 @@ public class DriveSample {
             lista = lista + id_tempo + ",";
         }
         lista = lista + "0)";
-        CONEXAO.conect();
+        //CONEXAO.conect();
         query = "DELETE FROM DIM_TEMPO WHERE id_tempo IN " + lista + ";";
         CONEXAO.runStatementDDL(query);
-        CONEXAO.disconect();
+        //CONEXAO.disconect();
     }
 
     private static String getDataUltimaCarga() {
@@ -603,11 +606,11 @@ public class DriveSample {
     private static void insereFatSinais(int id_tempo, int id_telescopio, String valor_vertical, String valor_escaler) {
         String query;
 
-        CONEXAO.conect();
+        //CONEXAO.conect();
         query = "INSERT INTO FAT_SINAIS (id_tempo, id_telescopio, valor_vertical, valor_escaler) "
                 + "VALUES (" + id_tempo + ", " + id_telescopio + " ," + valor_vertical + " , " + valor_escaler + ");";
         CONEXAO.runStatementDDL(query);
-        CONEXAO.disconect();
+        //CONEXAO.disconect();
 
         try {
             if (CONEXAO.getStatement() != null) {
@@ -617,7 +620,7 @@ public class DriveSample {
             System.out.println(" " + e.getMessage());
         }
         if (CONEXAO != null) {
-            CONEXAO.disconect();
+            //CONEXAO.disconect();
         }
 
     }

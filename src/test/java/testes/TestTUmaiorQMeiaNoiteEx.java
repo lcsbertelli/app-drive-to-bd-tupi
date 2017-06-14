@@ -8,8 +8,8 @@ import java.time.Month;
  * @author lucas
  */
 public class TestTUmaiorQMeiaNoiteEx {
-        public static void main(String[] args) {        
-        
+        public static void main(String[] args) {               
+            
         LocalDate date_name = LocalDate.of(2014, Month.DECEMBER, 17); // do q passa da 00h
         //LocalDate date_name = LocalDate.of(2014, Month.SEPTEMBER, 14); // do primeiro reg
         //double tu = 3.6278496e9; // Reg. que extrapolou o dia, mas ainda é 00:00:00
@@ -20,7 +20,6 @@ public class TestTUmaiorQMeiaNoiteEx {
         } catch (TUmaiorQMeiaNoiteException ex) {
             System.out.println(ex.getMessage());
             System.out.println("Obrigatorio excluir esse registro, trate a excecao assim");
-        }       
-               
+        }              
     }
 }

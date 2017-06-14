@@ -33,7 +33,6 @@ import java.util.Map;
 
 import java.time.*;
 import java.time.temporal.IsoFields;
-import java.util.Calendar;
 
 public class DriveSample {
 
@@ -104,7 +103,8 @@ public class DriveSample {
 //</editor-fold>
 
     public static void main(String[] args) {
-
+        Instant inicio = Instant.now(); //tempo de execucao da app
+        
         // ## Var de LOGICA     
         String dt_ult_carga_formata_drive = null; //DATA DA ULTIMA CARGA NO FORMATO DO DRIVE RFC 3339 ISO 8601
         LocalDate date_name; // Data obtida pelo nome do arquivo
@@ -131,7 +131,7 @@ public class DriveSample {
 
 //###        OBTER DATA da ULTIMA CARGA DADOS ##########
             dt_ult_carga_formata_drive = getDataUltimaCarga();
-            System.out.println("dt_ult_carga_formata_drive= " + dt_ult_carga_formata_drive);
+            //System.out.println("dt_ult_carga_formata_drive= " + dt_ult_carga_formata_drive);
 
             if (dt_ult_carga_formata_drive != null) {
                 String pageToken = null;
@@ -300,8 +300,12 @@ public class DriveSample {
         } catch (Throwable t) {
             t.printStackTrace();
         }
-
-        System.exit(1);
+        
+        Instant fim = Instant.now();
+        Duration duracao = Duration.between(inicio, fim);
+        System.out.println("Duracao Total da Carga: "+duracao.toString());
+        
+        System.exit(1);       
     } // main
 
     // Metodo para adicionar o T na separacao de Data e Time, e o Z no final. Aceita datas no Padrao yyyy-mm-dd hh:mm:ss 

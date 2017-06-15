@@ -166,24 +166,30 @@ public class DriveSample {
 //### Printa Metadados dos arquivos        
                 //printFiles(files);
 //### fim Printa Metadados dos arquivos
+
 // #################### DESCOMENTE PARA ACHAR DUPLICADAS NA CARGA INICIAL e Comente a parte do DOWNLOAD Abaixo ################################    
 // #################### e Comente a parte do DOWNLOAD Abaixo!!  - até resolver como baixar em Gzip   ###############################
 //      System.out.println(contaArquivosNomeRepetidoDrive(files));
 //      return;
-// #################### FIM SOMENTE PARA CARGA INICIAL ################################   
-//### Fazer Download dos Arquivos Novos - os inseridos em Files
+// #################### FIM SOMENTE PARA CARGA INICIAL ################################
+
+//######################################## Fazer Download dos Arquivos Novos - os inseridos em Files ########################################
 //## Observe que a ordenação faz com que os mais recentes sobrecrevam suas duplicatas mais antigas.
 //                for (File file : files) {
 //                    downloadFile(file);
 //                }
+//######################################## FIM - Fazer Download dos Arquivos Novos - os inseridos em Files ########################################
 
-//### fim Download
-
+// ############################## LIMPAR OS NOMES REPETIDOS PARA DESEMPENHO NA CARGA ###########################################
 // Obrigatoriamente após o download, podemos limpar os nomes repetidos na lista, pois a inserção é feita pelo nome
 // como os mais recentes já sobrescreveram os mais antigos na basta devido a baixados depois com o mesmo nome
 // essa limpeza evita que eles sejam inseridos novamente atoa, forçando um deleteAnterior e demorando mais a carga.
                files = removeNameRepetidos(files);
+//##############################################################################################################################
 
+//################ DROPAR CONSTRAINTS #########################
+               dropConstraints(); 
+//################ FIM #########################
 
     
 //###  Leitura de Arquivos ##############
@@ -289,6 +295,11 @@ public class DriveSample {
                         CONEXAO.disconect();
                     }
                 }
+
+// #############  ADD Constraints #############################################                
+                addConstraints();
+
+// #############  ADD Constraints #############################################
 
 //<editor-fold defaultstate="collapsed" desc="LIBERAR RECURSOS JDBC">
 //###    liberar recursos
@@ -461,6 +472,7 @@ public class DriveSample {
         try {            
             String query;
             List<Integer> ids_tempo = new LinkedList<Integer>();
+            String lista_ids_tempo = new String();
             LocalDate dia_seguinte = date_name.plusDays(1);
 
             delReg00h00m00sProxDia(dia_seguinte, id_telescopio); // deleta o reg do dia SEGUINTE 00:00:00, pois esse arquivo pode duplicalo ao final
@@ -475,28 +487,16 @@ public class DriveSample {
             while (resultSetIdsTempo.next()) { //Armazena em um list de ids tempos
                 ids_tempo.add(resultSetIdsTempo.getInt(1));
             }
-            for (Integer id_tempo : ids_tempo) { // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate                
-                //CONEXAO.conect();
-                CONEXAO.setNovoStatement ();
-                
-                // VER SE EXISTE FATOS 
-                query = "SELECT id_tempo FROM FAT_SINAIS WHERE id_tempo = " + id_tempo + " AND id_telescopio = " + id_telescopio + ";";
-                
-                resultSet = CONEXAO.query(query); // Posso usar o mesmo resultSet ? Nao sei pq tem q dar close depois de usar o RS                
-                //CONEXAO.disconect();
-
-                //Se tem registros na FAT_SINAIS p/ esse id, deleta.
-                if (resultSet.next()) {
-                    // DELETAR REGISTROS
-                    //CONEXAO.conect();
-                    query = "DELETE FROM FAT_SINAIS WHERE id_tempo =" + id_tempo + " AND id_telescopio =" + id_telescopio + ";";
-                    CONEXAO.runStatementDDL(query);
-                    //CONEXAO.disconect();
-                }
-            }
-            // Deleta os dim_tempo com esses ids.
             if (!ids_tempo.isEmpty()) {
-                delDimTempoByIDs(ids_tempo);
+                lista_ids_tempo = geraStrDeleteIN(ids_tempo);
+                
+                // DELETAR REGISTROS FAT_SINAIS
+                CONEXAO.setNovoStatement ();
+                query = "DELETE FROM FAT_SINAIS WHERE id_tempo IN " + lista_ids_tempo + " AND id_telescopio =" + id_telescopio + ";";
+                CONEXAO.runStatementDDL(query);                          
+            
+                // Deleta os dim_tempo com esses ids.            
+                delDimTempoByIDs(lista_ids_tempo);
             }
         } catch (SQLException e) {
             System.out.println(" " + e.getMessage());
@@ -526,12 +526,12 @@ public class DriveSample {
         int ano, mes, dia;
         ano = dia_seguinte.getYear();
         mes = dia_seguinte.getMonthValue();
-        dia = dia_seguinte.getDayOfMonth();
-        
+        dia = dia_seguinte.getDayOfMonth();        
         
         ResultSet resultSet = null;
         ResultSet resultSetIdsTempo = null;
         List<Integer> ids_tempo = new LinkedList<Integer>();
+        String lista_ids_tempo = new String();
         try {            
             String query;
 
@@ -543,29 +543,18 @@ public class DriveSample {
             while (resultSetIdsTempo.next()) { //Armazena em um list de ids tempos
                 ids_tempo.add(resultSetIdsTempo.getInt(1));
             }    
-            for (Integer id_tempo : ids_tempo) { // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate
-                
-                //CONEXAO.conect();
-                CONEXAO.setNovoStatement (); //Preciso de 2 conexoes para trabalhar com 2 statements, pois tenho 2 results set.
-                // Vejo se existe fatos para esse ID tempo
-                query = "SELECT id_tempo FROM FAT_SINAIS WHERE id_tempo = " + id_tempo + " AND id_telescopio = " + id_telescopio + ";";
-                
-                resultSet = CONEXAO.query(query); // Posso usar o mesmo resultSet ? Nao sei pq tem q dar close depois de usar o RS                
-                //CONEXAO.disconect();
-
-                //Se tem registros na FAT_SINAIS p/ esse id, deleta.
-                if (resultSet.next()) {
-                    // DELETAR REGISTROS
-                    //CONEXAO.conect();
-                    query = "DELETE FROM FAT_SINAIS WHERE id_tempo =" + id_tempo + " AND id_telescopio =" + id_telescopio + ";";
-                    CONEXAO.runStatementDDL(query);
-                    //CONEXAO.disconect();
-                }
-            }
-            // Deleta o dim_tempo com esses ids.
             if (!ids_tempo.isEmpty()) {
-                delDimTempoByIDs(ids_tempo);
+                lista_ids_tempo = geraStrDeleteIN(ids_tempo);
+                
+                // DELETAR REGISTROS FAT_SINAIS
+                CONEXAO.setNovoStatement ();
+                query = "DELETE FROM FAT_SINAIS WHERE id_tempo IN " + lista_ids_tempo + " AND id_telescopio =" + id_telescopio + ";";
+                CONEXAO.runStatementDDL(query);                          
+            
+                // Deleta os dim_tempo com esses ids.            
+                delDimTempoByIDs(lista_ids_tempo);
             }
+            
         } catch (SQLException e) {
             System.out.println(" " + e.getMessage());
         } finally {
@@ -588,19 +577,13 @@ public class DriveSample {
         }
     }
 
-    private static void delDimTempoByIDs(List<Integer> ids_tempo) {
+    private static void delDimTempoByIDs(String lista_ids_tempo) {
         
         CONEXAO.setNovoStatement ();
         String query;
-        String lista = new String();
-        lista = "(";
-        for (Integer id_tempo : ids_tempo) { // Enquanto tiver id_tempo de cargas anteriores para esse dia  LocalDate                                     
-            // DELETAR REGISTROS dim_tempo cargas anteriores com esses IDS
-            lista = lista + id_tempo + ",";
-        }
-        lista = lista + "0)"; // so para fechar a lista, nao tem id 0, nao da problema. pq da virgula
+        
         //CONEXAO.conect();
-        query = "DELETE FROM DIM_TEMPO WHERE id_tempo IN " + lista + ";";
+        query = "DELETE FROM DIM_TEMPO WHERE id_tempo IN " + lista_ids_tempo + ";";
         CONEXAO.runStatementDDL(query);
         //CONEXAO.disconect();
         try{
@@ -611,6 +594,16 @@ public class DriveSample {
                 System.out.println(" " + e.getMessage());
         }   
     }
+    
+    private static String geraStrDeleteIN(List<Integer> ids_tempo){
+        String lista = new String();
+        lista = "(";
+        for (Integer id_tempo : ids_tempo) {                                             
+            lista = lista + id_tempo + ",";
+        }
+        lista = lista + "0)"; // so para fechar a lista, nao tem id 0, nao da problema. pq da virgula
+        return lista;
+    } 
 
     private static String getDataUltimaCarga() {
         String dt_ult_carga_formata_drive = null;
@@ -674,5 +667,108 @@ public class DriveSample {
 //        }
 
     }
+    
+    private static void addConstraints(){    
+        
+        String query1, query2, query3, query4;
+        query1 = "ALTER TABLE tupi.dim_tempo ADD CONSTRAINT pk_dim_tempo PRIMARY KEY (id_tempo);";
+        query2 = "ALTER TABLE tupi.fat_sinais ADD CONSTRAINT pk_fat_sinais PRIMARY KEY (id_tempo, id_telescopio);";
+        query3 = "ALTER TABLE tupi.FAT_SINAIS ADD CONSTRAINT fk_fat_sinais_tempo FOREIGN KEY (id_tempo) REFERENCES tupi.DIM_TEMPO;";
+        query4 = "ALTER TABLE tupi.FAT_SINAIS ADD CONSTRAINT fk_fat_sinais_telescopio FOREIGN KEY (id_telescopio) REFERENCES tupi.DIM_TELESCOPIO;";
+        
+        try{
+            CONEXAO.conect();
+            CONEXAO.getC().setAutoCommit(false);
+            CONEXAO.setNovoStatement();
+            CONEXAO.getStatement().addBatch(query1);
+            CONEXAO.getStatement().addBatch(query2);
+            CONEXAO.getStatement().addBatch(query3);
+            CONEXAO.getStatement().addBatch(query4);
+            CONEXAO.getStatement().executeBatch();
+            CONEXAO.getC().commit();
+            CONEXAO.disconect();       
+        
+            
+        } catch (SQLException e) {                                               
+            try {   
+                System.err.println(" " + e.getMessage());
+                System.err.print("Rollback efetuado na transação");
+                System.err.print("Erro ao ADD constraints devem ser criadas manualmente no banco!!");
+                CONEXAO.getC().rollback();
+            } catch(SQLException e2) {
+                System.err.print("Erro na transação!"+e2);
+            }                              
+        } finally {
+            try{
+                if (CONEXAO.getStatement() != null) { // Aqui pode fechar, pois eu abro outra conexao depois
+                    CONEXAO.getStatement().close();
+                }
+            } catch (SQLException e) {
+                System.out.println(" " + e.getMessage());
+            }    
+            if (CONEXAO != null) {
+                CONEXAO.disconect();
+            }
+        }    
+    }        
+            
+    
+    
+    private static void dropConstraints(){        
+        
+        
+        String query1, query2, query3, query4;
+        query1 = "ALTER TABLE tupi.dim_tempo DROP CONSTRAINT pk_dim_tempo;";
+        query2 = "ALTER TABLE tupi.fat_sinais DROP CONSTRAINT pk_fat_sinais;";
+        query3 = "ALTER TABLE tupi.fat_sinais DROP CONSTRAINT fk_fat_sinais_tempo;";
+        query4 = "ALTER TABLE tupi.fat_sinais DROP CONSTRAINT fk_fat_sinais_telescopio;";
+        
+        try{
+            CONEXAO.conect();
+            CONEXAO.getC().setAutoCommit(false);
+            CONEXAO.setNovoStatement();
+            CONEXAO.getStatement().addBatch(query1);
+            CONEXAO.getStatement().addBatch(query2);
+            CONEXAO.getStatement().addBatch(query3);
+            CONEXAO.getStatement().addBatch(query4);
+            CONEXAO.getStatement().executeBatch();
+            CONEXAO.getC().commit();
+            CONEXAO.disconect();       
+        
+            
+        } catch (SQLException e) {                                               
+            try {   
+                System.err.println(" " + e.getMessage());
+                System.err.print("Rollback efetuado na transação");
+                CONEXAO.getC().rollback();
+            } catch(SQLException e2) {
+                System.err.print("Erro na transação!"+e2);
+            }            
+            //## liberar recursos e fechar a app
+            try{
+                if (CONEXAO.getStatement() != null) { // Aqui pode fechar, pois eu abro outra conexao depois
+                    CONEXAO.getStatement().close();
+                }
+            } catch (SQLException ex) {
+                System.out.println(" " + ex.getMessage());
+            }    
+            if (CONEXAO != null) {
+                CONEXAO.disconect();
+            }
+            System.exit(1); // Mata a execução do programa.
+        } finally {
+            try{
+                if (CONEXAO.getStatement() != null) { // Aqui pode fechar, pois eu abro outra conexao depois
+                    CONEXAO.getStatement().close();
+                }
+            } catch (SQLException e) {
+                System.out.println(" " + e.getMessage());
+            }    
+            if (CONEXAO != null) {
+                CONEXAO.disconect();
+            }
+        }    
+    }        
 
+    
 }//class

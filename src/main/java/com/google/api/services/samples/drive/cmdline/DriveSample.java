@@ -178,6 +178,14 @@ public class DriveSample {
 //                }
 
 //### fim Download
+
+// Obrigatoriamente após o download, podemos limpar os nomes repetidos na lista, pois a inserção é feita pelo nome
+// como os mais recentes já sobrescreveram os mais antigos na basta devido a baixados depois com o mesmo nome
+// essa limpeza evita que eles sejam inseridos novamente atoa, forçando um deleteAnterior e demorando mais a carga.
+               files = removeNameRepetidos(files);
+
+
+    
 //###  Leitura de Arquivos ##############
                 for (File file : files) {
                     try {
@@ -377,7 +385,28 @@ public class DriveSample {
             return nomesRepetidos;
         }
     }
-
+    // Nao vai importa mais os metados do arquivo, eu só uso o nome para abrir o arquivo a partir do download.
+    private static List<File> removeNameRepetidos(List<File> files) {
+        
+        List<File> files_sem_nome_repetido = new LinkedList<File>();
+        if (files == null || files.size() == 0) {
+            System.out.println("No files found.");
+            return null;
+        } else {
+            Map<String, Integer> nomesRepetidos = new HashMap<String, Integer>();
+            for (File file : files) {
+                if (nomesRepetidos.containsKey(file.getName())) {
+                    nomesRepetidos.put(file.getName(), nomesRepetidos.get(file.getName()) + 1);
+                    // nao add na lista files_sem_nome_rep só add quando ele nao existe lá
+                } else {
+                    nomesRepetidos.put(file.getName(), 1);
+                    files_sem_nome_repetido.add(file);
+                }
+            }            
+        }
+        return files_sem_nome_repetido;
+    }
+    
     private static Integer insereDimTempo(ZonedDateTime tu, String ano, String mes, String dia, Integer num_trimestre, Integer num_semestre, Integer num_hora, Integer num_minuto, Integer num_segundo) {
         //######## INSERE O NOVO DIM_TEMPO ###############    
         int id_tempo;

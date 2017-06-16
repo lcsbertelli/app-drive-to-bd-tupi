@@ -667,7 +667,7 @@ public class DriveSample {
 //        }
 
     }
-    
+    // Novos índices criados devem ser add aqui ao final da carga.
     private static void addConstraints(){    
         
         String query1, query2, query3, query4, query5;
@@ -716,7 +716,7 @@ public class DriveSample {
     }        
             
     
-    
+    // Novos índices criados devem ser dropados aqui.
     private static void dropConstraints(){        
         
         

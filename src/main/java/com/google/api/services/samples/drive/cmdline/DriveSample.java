@@ -188,7 +188,7 @@ public class DriveSample {
 //##############################################################################################################################
 
 //################ DROPAR CONSTRAINTS #########################
-               dropConstraints(); 
+               //dropConstraints(); 
 //################ FIM #########################
 
     
@@ -670,12 +670,14 @@ public class DriveSample {
     
     private static void addConstraints(){    
         
-        String query1, query2, query3, query4;
-        query1 = "ALTER TABLE tupi.dim_tempo ADD CONSTRAINT pk_dim_tempo PRIMARY KEY (id_tempo);";
-        query2 = "ALTER TABLE tupi.fat_sinais ADD CONSTRAINT pk_fat_sinais PRIMARY KEY (id_tempo, id_telescopio);";
-        query3 = "ALTER TABLE tupi.FAT_SINAIS ADD CONSTRAINT fk_fat_sinais_tempo FOREIGN KEY (id_tempo) REFERENCES tupi.DIM_TEMPO;";
-        query4 = "ALTER TABLE tupi.FAT_SINAIS ADD CONSTRAINT fk_fat_sinais_telescopio FOREIGN KEY (id_telescopio) REFERENCES tupi.DIM_TELESCOPIO;";
-        
+        String query1, query2, query3, query4, query5;
+        query1 = "ALTER TABLE tupi.dim_telescopio ADD CONSTRAINT pk_dim_telescopio PRIMARY KEY (id_telescopio);";
+        query2 = "ALTER TABLE tupi.dim_tempo ADD CONSTRAINT pk_dim_tempo PRIMARY KEY (id_tempo);";
+        query3 = "ALTER TABLE tupi.fat_sinais ADD CONSTRAINT pk_fat_sinais PRIMARY KEY (id_tempo, id_telescopio);";
+        query4 = "ALTER TABLE tupi.FAT_SINAIS ADD CONSTRAINT fk_fat_sinais_tempo FOREIGN KEY (id_tempo) REFERENCES tupi.DIM_TEMPO;";
+        query5 = "ALTER TABLE tupi.FAT_SINAIS ADD CONSTRAINT fk_fat_sinais_telescopio FOREIGN KEY (id_telescopio) REFERENCES tupi.DIM_TELESCOPIO;";
+         
+                
         try{
             CONEXAO.conect();
             CONEXAO.getC().setAutoCommit(false);
@@ -684,6 +686,7 @@ public class DriveSample {
             CONEXAO.getStatement().addBatch(query2);
             CONEXAO.getStatement().addBatch(query3);
             CONEXAO.getStatement().addBatch(query4);
+            CONEXAO.getStatement().addBatch(query5);
             CONEXAO.getStatement().executeBatch();
             CONEXAO.getC().commit();
             CONEXAO.disconect();       
@@ -717,11 +720,13 @@ public class DriveSample {
     private static void dropConstraints(){        
         
         
-        String query1, query2, query3, query4;
-        query1 = "ALTER TABLE tupi.dim_tempo DROP CONSTRAINT pk_dim_tempo;";
-        query2 = "ALTER TABLE tupi.fat_sinais DROP CONSTRAINT pk_fat_sinais;";
-        query3 = "ALTER TABLE tupi.fat_sinais DROP CONSTRAINT fk_fat_sinais_tempo;";
-        query4 = "ALTER TABLE tupi.fat_sinais DROP CONSTRAINT fk_fat_sinais_telescopio;";
+        String query1, query2, query3, query4, query5;
+        
+        query1 = "ALTER TABLE tupi.fat_sinais DROP CONSTRAINT pk_fat_sinais;";
+        query2 = "ALTER TABLE tupi.fat_sinais DROP CONSTRAINT fk_fat_sinais_tempo;";
+        query3 = "ALTER TABLE tupi.fat_sinais DROP CONSTRAINT fk_fat_sinais_telescopio;";
+        query4 = "ALTER TABLE tupi.dim_tempo DROP CONSTRAINT pk_dim_tempo;";
+        query5 = "ALTER TABLE tupi.dim_telescopio DROP CONSTRAINT pk_dim_telescopio;";
         
         try{
             CONEXAO.conect();
@@ -731,6 +736,7 @@ public class DriveSample {
             CONEXAO.getStatement().addBatch(query2);
             CONEXAO.getStatement().addBatch(query3);
             CONEXAO.getStatement().addBatch(query4);
+            CONEXAO.getStatement().addBatch(query5);
             CONEXAO.getStatement().executeBatch();
             CONEXAO.getC().commit();
             CONEXAO.disconect();       

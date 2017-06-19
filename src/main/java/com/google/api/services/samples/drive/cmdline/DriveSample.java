@@ -52,7 +52,7 @@ public class DriveSample {
             = new java.io.File(System.getProperty("user.home"), ".store/drive_tupi");
 
     //Conexao da classe Generecia Conexao
-    private static final Conexao CONEXAO = new Conexao("PostgreSql", "localhost", "5432", "tupi", "tupi", "123456");
+    private static final Conexao CONEXAO = new Conexao("PostgreSql", "localhost", "5432", "testes", "tupi", "123456");
 //</editor-fold>
 
     /**

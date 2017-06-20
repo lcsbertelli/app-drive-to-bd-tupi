@@ -780,7 +780,7 @@ public class DriveSample {
         }    
     }        
 
-    private static void runProcCalculaAgregados(){        
+    public static void runProcCalculaAgregados(){        
         
         try {
             CONEXAO.conect();

@@ -23,6 +23,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
@@ -33,6 +34,8 @@ import java.util.Map;
 
 import java.time.*;
 import java.time.temporal.IsoFields;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class DriveSample {
 
@@ -295,7 +298,8 @@ public class DriveSample {
                         CONEXAO.disconect();
                     }
                 }
-
+// ############# Chamar procedure Calcula Agregados/Atualiza já que foi feita carga #############################################                
+                runProcCalculaAgregados();
 // #############  ADD Constraints #############################################                
                 addConstraints();
 
@@ -776,5 +780,28 @@ public class DriveSample {
         }    
     }        
 
+    private static void runProcCalculaAgregados(){        
+        
+        try {
+            CONEXAO.conect();
+            CallableStatement proc = CONEXAO.getC().prepareCall("{? = call calcula_agregados_dim_tempo_to_fat_sinais()}");
+            proc.execute();
+            proc.close();
+            CONEXAO.disconect();  
+        } catch (SQLException ex) {
+            System.err.println(" " + ex.getMessage());        
+        } finally {
+            try{
+                if (CONEXAO.getStatement() != null) { // Aqui pode fechar, pois eu abro outra conexao depois
+                    CONEXAO.getStatement().close();
+                }
+            } catch (SQLException e) {
+                System.out.println(" " + e.getMessage());
+            }    
+            if (CONEXAO != null) {
+                CONEXAO.disconect();
+            }
+        }  
+    }
     
 }//class

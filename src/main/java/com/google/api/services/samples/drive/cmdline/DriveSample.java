@@ -26,6 +26,7 @@ import java.io.OutputStream;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 import java.util.LinkedList;
@@ -34,8 +35,6 @@ import java.util.Map;
 
 import java.time.*;
 import java.time.temporal.IsoFields;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class DriveSample {
 
@@ -783,8 +782,8 @@ public class DriveSample {
     public static void runProcCalculaAgregados(){        
         
         try {
-            CONEXAO.conect();
-            CallableStatement proc = CONEXAO.getC().prepareCall("{? = call calcula_agregados_dim_tempo_to_fat_sinais()}");
+            CONEXAO.conect();            
+            CallableStatement proc = CONEXAO.getC().prepareCall("{call calcula_agregados_dim_tempo_to_fat_sinais()}");                      
             proc.execute();
             proc.close();
             CONEXAO.disconect();  

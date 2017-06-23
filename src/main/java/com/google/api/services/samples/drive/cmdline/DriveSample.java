@@ -23,10 +23,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.Statement;
 import java.util.Collections;
 import java.util.List;
 import java.util.LinkedList;
@@ -228,9 +227,9 @@ public class DriveSample {
 
                         date_name = LocalDate.of(Integer.parseInt(ano), Integer.parseInt(mes), Integer.parseInt(dia));
 
-                        // Deleta Carga Anteriores Relacionadas a Esse Dia, se houverem. + agregados + dim_tempo        
+                        // Deleta Carga Anteriores Relacionadas a Esse Dia, se houverem. + dim_tempo        
                         deletaCargaAnterior(ano, mes, dia, id_telescopio, date_name);
-// #### #########!!!!!!!!!!!!!!!!!! INSERIR CHAMADA PROCEDURE DELETA AGREGADOS !!!!!!!!!!!!####################
+
 
                         //Insere um novo Dim_tempo para cada TU e depois preenche o fato desse dim grao tu.
                         //chamar procedure calcula_agregados
@@ -264,7 +263,7 @@ public class DriveSample {
                             valor_escaler = valor_escaler.substring(0, (valor_escaler.length() - 1));
 
                             id_tempo = insereDimTempo(tu, ano, mes, dia, trimestre, semestre, hora, min, seg);
-                            insereFatSinais(id_tempo, id_telescopio, valor_vertical, valor_escaler);
+                            insereFatSinais(id_tempo, id_telescopio, valor_vertical, valor_escaler, ano, mes, dia, trimestre, semestre, hora);
 // #### #########!!!!!!!!!!!!!!!!!!! INSERIR CHAMADA PROCEDURE CALCULA AGREGADOS !!!!!!!!!!!!####################
 
                         } //loop prox linha arquivo                    
@@ -297,8 +296,7 @@ public class DriveSample {
                         CONEXAO.disconect();
                     }
                 }
-// ############# Chamar procedure Calcula Agregados/Atualiza já que foi feita carga #############################################                
-                runProcCalculaAgregados();
+
 // #############  ADD Constraints #############################################                
                 addConstraints();
 
@@ -466,31 +464,58 @@ public class DriveSample {
 
     //### Deleto Todos os Fatos (fat_sinais) com essa Data. LocalDate.
     // + deleto todos os dim_tempo que envolvem essa Data.
-    // ou seja, deleto os graos minimos dt_data_completa e seus agregados superiores
-    // FALTA CHAMAR PROCEDURE AGREGADOS DEL
+    // ou seja, deleto os graos minimos dt_data_completa. Não deletamos mais os agregados superiores.    
     private static void deletaCargaAnterior(String ano, String mes, String dia, int id_telescopio, LocalDate date_name) {
                 
-        ResultSet resultSet = null;
+        
         ResultSet resultSetIdsTempo = null;
-        try {            
+        try {
+            Map<Integer, Integer> map_ids_tempo = new HashMap<Integer, Integer>();
+            Integer trimestre, semestre, hora;
+            String valor_vertical, valor_escaler;
             String query;
             List<Integer> ids_tempo = new LinkedList<Integer>();
             String lista_ids_tempo = new String();
             LocalDate dia_seguinte = date_name.plusDays(1);
+            
+            trimestre = YearMonth.from(date_name).get(IsoFields.QUARTER_OF_YEAR);
+            if (date_name.getMonthValue() < 7) {
+                semestre = 1;
+            } else {
+                semestre = 2;
+            }
 
-            delReg00h00m00sProxDia(dia_seguinte, id_telescopio); // deleta o reg do dia SEGUINTE 00:00:00, pois esse arquivo pode duplicalo ao final
+            delReg00h00m00sProxDia(dia_seguinte, id_telescopio); // deleta o reg do dia SEGUINTE 00:00:00, pois esse arquivo pode duplicalo ao final                        
             
             //Não deleto os 00:00:00, pois eles estao sempre unitarios e atualizados. E o arquivo deste Dia só insere valores a partir disso, nunca tem valores de 00:00:00 que o duplicariam
             //CONEXAO.conect();
             CONEXAO.setNovoStatement ();
-            query = "SELECT id_tempo FROM DIM_TEMPO WHERE num_ano = " + ano + " and num_mes = " + mes + " and num_dia = " + dia + ""
+            query = "SELECT id_tempo, num_hora FROM DIM_TEMPO WHERE num_ano = " + ano + " and num_mes = " + mes + " and num_dia = " + dia + ""
                     + "and dt_data_completa AT TIME ZONE 'UTC' > '" + ano + "-" + mes + "-" + dia + " 00:00:00';";
             resultSetIdsTempo = CONEXAO.query(query);
             //CONEXAO.disconect();
             while (resultSetIdsTempo.next()) { //Armazena em um list de ids tempos
-                ids_tempo.add(resultSetIdsTempo.getInt(1));
+                ids_tempo.add(resultSetIdsTempo.getInt(1));                
+                map_ids_tempo.put(resultSetIdsTempo.getInt(1), resultSetIdsTempo.getInt(2));
             }
             if (!ids_tempo.isEmpty()) {
+                
+                //### Subtrair dos calculos agregados que envolvem esse grao
+                // descobrir o fato desse grao id_tempo. 1-1, pois estou no grao minimo
+                for(Integer id_tempo : ids_tempo){                    
+                    hora = map_ids_tempo.get(id_tempo);
+                    CONEXAO.setNovoStatement ();
+                    query = "select valor_vertical, valor_escaler from tupi.FAT_SINAIS where id_tempo = "+ id_tempo +" and id_telescopio = " + id_telescopio + " ;";
+                    ResultSet resultSetFato = CONEXAO.query(query);                    
+                    if (resultSetFato.next()) {
+                        valor_vertical = resultSetFato.getString(1);
+                        valor_escaler = resultSetFato.getString(2);                        
+                        attAgregadosRelacionados("-", id_telescopio, valor_vertical, valor_escaler, ano, mes, dia, trimestre, semestre, hora);
+                    }
+                    resultSetFato.close();
+                    CONEXAO.getStatement().close();
+                }                                                             
+                
                 lista_ids_tempo = geraStrDeleteIN(ids_tempo);
                 
                 // DELETAR REGISTROS FAT_SINAIS
@@ -504,10 +529,7 @@ public class DriveSample {
         } catch (SQLException e) {
             System.out.println(" " + e.getMessage());
         } finally {
-            try {
-                if (resultSet != null) {
-                    resultSet.close();
-                }
+            try {                
                 if (resultSetIdsTempo != null) {
                     resultSetIdsTempo.close();
                 }
@@ -526,30 +548,59 @@ public class DriveSample {
     //Deleta os Registros de 00:00:00 do dia seguinte, pois ele pode ser inserido novamente no final desse arquivo.
     private static void delReg00h00m00sProxDia(LocalDate dia_seguinte, int id_telescopio) {     
         
-        int ano, mes, dia;
+        Integer ano, mes, dia, hora, trimestre, semestre;
+        String valor_vertical, valor_escaler;
         ano = dia_seguinte.getYear();
         mes = dia_seguinte.getMonthValue();
-        dia = dia_seguinte.getDayOfMonth();        
-        
-        ResultSet resultSet = null;
+        dia = dia_seguinte.getDayOfMonth();
+        hora = 0;
+        trimestre = YearMonth.from(dia_seguinte).get(IsoFields.QUARTER_OF_YEAR);
+        if (dia_seguinte.getMonthValue() < 7) {
+            semestre = 1;
+        } else {
+            semestre = 2;
+        }
+                
         ResultSet resultSetIdsTempo = null;
         List<Integer> ids_tempo = new LinkedList<Integer>();
-        String lista_ids_tempo = new String();
+        String lista_ids_tempo = new String();        
+        
+                
         try {            
             String query;
 
             //CONEXAO.conect();
             CONEXAO.setNovoStatement ();
-            query = "select id_tempo from dim_tempo WHERE dt_data_completa AT TIME ZONE 'UTC' = '" + ano + "-" + mes + "-" + dia + " 00:00:00';";
+            query = "select id_tempo  from dim_tempo WHERE dt_data_completa AT TIME ZONE 'UTC' = '" + ano + "-" + mes + "-" + dia + " 00:00:00';";
             resultSetIdsTempo = CONEXAO.query(query);
             //CONEXAO.disconect();
             while (resultSetIdsTempo.next()) { //Armazena em um list de ids tempos
                 ids_tempo.add(resultSetIdsTempo.getInt(1));
-            }    
+            }
+            resultSetIdsTempo.close();
+            CONEXAO.getStatement().close();
+            
             if (!ids_tempo.isEmpty()) {
-                lista_ids_tempo = geraStrDeleteIN(ids_tempo);
                 
-                // DELETAR REGISTROS FAT_SINAIS
+                //### Subtrair dos calculos agregados que envolvem esse grao
+                // descobrir o fato desse grao id_tempo. 1-1, pois estou no grao minimo
+                for(Integer id_tempo : ids_tempo){
+                    CONEXAO.setNovoStatement ();                    
+                    query = "select valor_vertical, valor_escaler from tupi.FAT_SINAIS where id_tempo = "+ id_tempo +" and id_telescopio = " + id_telescopio + " ;";
+                    ResultSet resultSetFato = CONEXAO.query(query);
+                    
+                    if (resultSetFato.next()) {
+                        valor_vertical = resultSetFato.getString(1);
+                        valor_escaler = resultSetFato.getString(2);                        
+                        attAgregadosRelacionados("-", id_telescopio, valor_vertical, valor_escaler, ano.toString(), mes.toString(), dia.toString(), trimestre, semestre, hora);
+                    }
+                    resultSetFato.close();
+                    CONEXAO.getStatement().close();
+                }             
+                                                   
+                lista_ids_tempo = geraStrDeleteIN(ids_tempo);                                              
+                
+                // DELETAR REGISTROS FAT_SINAIS                
                 CONEXAO.setNovoStatement ();
                 query = "DELETE FROM FAT_SINAIS WHERE id_tempo IN " + lista_ids_tempo + " AND id_telescopio =" + id_telescopio + ";";
                 CONEXAO.runStatementDDL(query);                          
@@ -561,10 +612,7 @@ public class DriveSample {
         } catch (SQLException e) {
             System.out.println(" " + e.getMessage());
         } finally {
-            try {
-                if (resultSet != null) {
-                    resultSet.close();
-                }
+            try {                
                 if (resultSetIdsTempo != null) {
                     resultSetIdsTempo.close();
                 }
@@ -647,17 +695,20 @@ public class DriveSample {
     }
 
     //id_telescopio = 1 fixo tupi
-    private static void insereFatSinais(int id_tempo, int id_telescopio, String valor_vertical, String valor_escaler) {
-        
+    // Insere o grão mímino e
+    // Agora calcula/update em tempo de insert os agregados afetados por esse grão inserido.    
+    private static void insereFatSinais(int id_tempo, int id_telescopio, String valor_vertical, String valor_escaler, String ano, String mes, String dia, Integer trimestre, Integer semestre, Integer hora) {
+                        
         CONEXAO.setNovoStatement ();
         String query;
-
-        //CONEXAO.conect();
+        
         query = "INSERT INTO FAT_SINAIS (id_tempo, id_telescopio, valor_vertical, valor_escaler) "
                 + "VALUES (" + id_tempo + ", " + id_telescopio + " ," + valor_vertical + " , " + valor_escaler + ");";
         CONEXAO.runStatementDDL(query);
-        //CONEXAO.disconect();
-
+    
+    // ### Atualiza agredados afetados pela insercao do grão    
+        attAgregadosRelacionados("+", id_telescopio, valor_vertical, valor_escaler, ano, mes, dia, trimestre, semestre, hora);
+        
         try {
             if (CONEXAO.getStatement() != null) {
                 CONEXAO.getStatement().close();
@@ -670,6 +721,116 @@ public class DriveSample {
 //        }
 
     }
+    
+    
+    // Insert em Fat_sinais Operador = +
+    // Delete em Fat_sinais Operador = -
+    // Atualiza o valor dos agregados envolvidos pela inserção(+) ou delecao(-) desse grão.
+    // Ou seja, agregados de Ano, Ano/Mes, Ano/Mes/Dia, Ano/Trimestre, Ano/Semestre, Hora.
+    private static void attAgregadosRelacionados(String operador, int id_telescopio, String valor_vertical, String valor_escaler, String ano, String mes, String dia, Integer trimestre, Integer semestre, Integer hora) {
+        
+        // lista dos ids_tempo agregados envolvidos
+        List<Integer> ids_tempo = new LinkedList<Integer>();
+        String query;
+        ResultSet resultSet = null;
+        
+        try{
+        //Descobrir os id_tempo dos agregados envolvidos
+        //Agregado por Ano
+            CONEXAO.setNovoStatement ();
+            query = "select id_tempo from dim_tempo where dt_data_completa IS NULL and num_ano = "+ ano +" and num_mes IS NULL and num_dia IS NULL and num_trimestre IS NULL and num_semestre IS NULL and num_hora IS NULL and num_minuto IS NULL and num_segundo IS NULL ;"; 
+            resultSet = CONEXAO.query(query);            
+            if (resultSet.next()) {  // vai para primeira linha do resultSet
+                ids_tempo.add(resultSet.getInt(1));                
+            }
+            resultSet.close();
+            CONEXAO.getStatement().close();
+        
+        //Agregado por Ano/Mes
+            CONEXAO.setNovoStatement ();
+            query = "select id_tempo from dim_tempo where dt_data_completa IS NULL and num_ano = "+ ano +" and num_mes = "+ mes +" and num_dia IS NULL and num_trimestre IS NULL and num_semestre IS NULL and num_hora IS NULL and num_minuto IS NULL and num_segundo IS NULL ;"; 
+            resultSet = CONEXAO.query(query);
+            
+            if (resultSet.next()) {  
+                 ids_tempo.add(resultSet.getInt(1));
+            }
+            resultSet.close();
+            CONEXAO.getStatement().close();
+        
+        //Agregado por Ano/Mes/Dia
+            CONEXAO.setNovoStatement ();
+            query = "select id_tempo from dim_tempo where dt_data_completa IS NULL and num_ano = "+ ano +" and num_mes = "+ mes +" and num_dia = "+ dia +" and num_trimestre IS NULL and num_semestre IS NULL and num_hora IS NULL and num_minuto IS NULL and num_segundo IS NULL ;"; 
+            resultSet = CONEXAO.query(query);
+            
+            if (resultSet.next()) {  
+                 ids_tempo.add(resultSet.getInt(1));
+            }
+            resultSet.close();
+            CONEXAO.getStatement().close();    
+        
+        //Agregado por HORA do Ano/Mes/Dia 
+            CONEXAO.setNovoStatement ();
+            query = "select id_tempo from dim_tempo where dt_data_completa IS NULL and num_ano = "+ ano +" and num_mes = "+ mes +" and num_dia = "+ dia +" and num_trimestre IS NULL and num_semestre IS NULL and num_hora = "+ hora +" and num_minuto IS NULL and num_segundo IS NULL ;"; 
+            resultSet = CONEXAO.query(query);
+            
+            if (resultSet.next()) {  
+                 ids_tempo.add(resultSet.getInt(1));
+            }
+            resultSet.close();
+            CONEXAO.getStatement().close();    
+        
+        //Agregado por Ano/TRIMESTRE
+            CONEXAO.setNovoStatement ();
+            query = "select id_tempo from dim_tempo where dt_data_completa IS NULL and num_ano = "+ ano +" and num_mes IS NULL and num_dia IS NULL and num_trimestre = "+ trimestre +" and num_semestre IS NULL and num_hora IS NULL and num_minuto IS NULL and num_segundo IS NULL ;"; 
+            resultSet = CONEXAO.query(query);            
+            if (resultSet.next()) {  // vai para primeira linha do resultSet
+                ids_tempo.add(resultSet.getInt(1));                
+            }
+            resultSet.close();
+            CONEXAO.getStatement().close();
+        
+         //Agregado por Ano/SEMESTRE
+            CONEXAO.setNovoStatement ();
+            query = "select id_tempo from dim_tempo where dt_data_completa IS NULL and num_ano = "+ ano +" and num_mes IS NULL and num_dia IS NULL and num_trimestre IS NULL and num_semestre = "+ semestre +" and num_hora IS NULL and num_minuto IS NULL and num_segundo IS NULL ;"; 
+            resultSet = CONEXAO.query(query);            
+            if (resultSet.next()) {  // vai para primeira linha do resultSet
+                ids_tempo.add(resultSet.getInt(1));                
+            }
+            resultSet.close();
+            CONEXAO.getStatement().close();               
+            
+    
+            
+            
+        // Atualiza para cada agregado
+        for(Integer id_tempo : ids_tempo){
+            CONEXAO.setNovoStatement ();
+            query =  new String();          
+            query = "UPDATE tupi.FAT_SINAIS SET valor_vertical = valor_vertical "+operador+" " + valor_vertical + ", valor_escaler = valor_escaler "+operador+" " + valor_escaler + " "
+                    + "WHERE id_tempo = " + id_tempo + " and id_telescopio = " + id_telescopio + " ;" ;
+            System.out.println(query);
+            CONEXAO.runStatementDDL(query);
+            CONEXAO.getStatement().close();
+        }
+        
+        } catch (SQLException e) {
+            System.out.println(" " + e.getMessage());
+        
+        }finally{      
+            try {    
+                if (CONEXAO.getStatement() != null) {                
+                    CONEXAO.getStatement().close();
+                }
+                if (resultSet != null) {
+                    resultSet.close();
+                }
+            } catch (SQLException ex) {
+                System.out.println(" " + ex.getMessage());
+            }                       
+        }
+    }           
+    
+    
     // Novos índices criados devem ser add aqui ao final da carga.
     private static void addConstraints(){    
         
@@ -779,29 +940,29 @@ public class DriveSample {
         }    
     }        
 
-    
-    public static void runProcCalculaAgregados(){        
-        
-        try {
-            CONEXAO.conect();            
-            CallableStatement proc = CONEXAO.getC().prepareCall("{call calcula_agregados_dim_tempo_to_fat_sinais()}");                      
-            proc.execute();
-            proc.close();
-            CONEXAO.disconect();  
-        } catch (SQLException ex) {
-            System.err.println(" " + ex.getMessage());        
-        } finally {
-            try{
-                if (CONEXAO.getStatement() != null) { // Aqui pode fechar, pois eu abro outra conexao depois
-                    CONEXAO.getStatement().close();
-                }
-            } catch (SQLException e) {
-                System.out.println(" " + e.getMessage());
-            }    
-            if (CONEXAO != null) {
-                CONEXAO.disconect();
-            }
-        }  
-    }
+//### Defasado, estamos calculando em tempo de insert agora.    
+//    public static void runProcCalculaAgregados(){        
+//        
+//        try {
+//            CONEXAO.conect();            
+//            CallableStatement proc = CONEXAO.getC().prepareCall("{call calcula_agregados_dim_tempo_to_fat_sinais()}");                      
+//            proc.execute();
+//            proc.close();
+//            CONEXAO.disconect();  
+//        } catch (SQLException ex) {
+//            System.err.println(" " + ex.getMessage());        
+//        } finally {
+//            try{
+//                if (CONEXAO.getStatement() != null) { // Aqui pode fechar, pois eu abro outra conexao depois
+//                    CONEXAO.getStatement().close();
+//                }
+//            } catch (SQLException e) {
+//                System.out.println(" " + e.getMessage());
+//            }    
+//            if (CONEXAO != null) {
+//                CONEXAO.disconect();
+//            }
+//        }  
+//    }
     
 }//class

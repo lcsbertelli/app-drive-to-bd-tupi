@@ -227,12 +227,12 @@ public class DriveSample {
 
                         date_name = LocalDate.of(Integer.parseInt(ano), Integer.parseInt(mes), Integer.parseInt(dia));
 
-                        // Deleta Carga Anteriores Relacionadas a Esse Dia, se houverem. + dim_tempo        
+                        // Deleta Carga Anteriores Relacionadas a Esse Dia, se houverem. fatos + dim_tempo  + subtrai valor dos agregados      
                         deletaCargaAnterior(ano, mes, dia, id_telescopio, date_name);
 
 
                         //Insere um novo Dim_tempo para cada TU e depois preenche o fato desse dim grao tu.
-                        //chamar procedure calcula_agregados
+                        
                         //###  LOOP DE PULAR LINHA READLINE INSERIR AQUI
                         while (br.ready()) {
                             //lê a proxima linha
@@ -264,7 +264,7 @@ public class DriveSample {
 
                             id_tempo = insereDimTempo(tu, ano, mes, dia, trimestre, semestre, hora, min, seg);
                             insereFatSinais(id_tempo, id_telescopio, valor_vertical, valor_escaler, ano, mes, dia, trimestre, semestre, hora);
-// #### #########!!!!!!!!!!!!!!!!!!! INSERIR CHAMADA PROCEDURE CALCULA AGREGADOS !!!!!!!!!!!!####################
+
 
                         } //loop prox linha arquivo                    
                         // try do Loop files

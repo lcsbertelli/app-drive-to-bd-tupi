@@ -808,7 +808,7 @@ public class DriveSample {
             query =  new String();          
             query = "UPDATE tupi.FAT_SINAIS SET valor_vertical = valor_vertical "+operador+" " + valor_vertical + ", valor_escaler = valor_escaler "+operador+" " + valor_escaler + " "
                     + "WHERE id_tempo = " + id_tempo + " and id_telescopio = " + id_telescopio + " ;" ;
-            System.out.println(query);
+            
             CONEXAO.runStatementDDL(query);
             CONEXAO.getStatement().close();
         }
